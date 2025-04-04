@@ -1,0 +1,111 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 252 82% 54%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(
+      circle at 50% 50%,
+      hsl(252 82% 54% / 0.15) 0%,
+      transparent 100%
+    );
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px theme('colors.primary.DEFAULT');
+  }
+  50% {
+    box-shadow: 0 0 40px theme('colors.primary.DEFAULT');
+  }
+}
+
+.memory-container {
+  @apply relative overflow-hidden rounded-xl bg-black/40 backdrop-blur-xl border border-white/10;
+  animation: container-appear 0.5s ease-out;
+}
+
+@keyframes container-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.upload-zone {
+  @apply relative border-2 border-dashed rounded-xl transition-all duration-300;
+  animation: glow 3s infinite;
+}
+
+.upload-zone:hover {
+  @apply border-primary/80;
+  transform: scale(1.01);
+}
+
+.memory-input {
+  @apply bg-black/30 border border-white/10 rounded-lg p-4 w-full 
+         focus:ring-2 focus:ring-primary focus:border-primary
+         transition-all duration-300;
+}
+
+.logo-container {
+  @apply relative;
+}
+
+.logo-container img {
+  @apply transition-all duration-300;
+}
+
+.page-title {
+  @apply transition-all duration-300;
+  font-size: clamp(1.5rem, 5vw, 3rem);
+}
+
+.page-subtitle {
+  @apply transition-all duration-300;
+  font-size: clamp(0.7rem, 2vw, 0.875rem);
+}
+
+@media (max-width: 640px) {
+  .memory-container {
+    @apply p-4;
+  }
+  
+  .logo-container img {
+    @apply w-12 h-12 top-0 -right-2;
+  }
+}

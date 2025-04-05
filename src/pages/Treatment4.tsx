@@ -214,6 +214,11 @@ ${memory2Text}`;
                 isCurrentPhase={currentPhase === 5}
                 onComplete={handlePhase5Complete}
                 treatmentNumber={4}
+                narrativeScripts={narrativeScripts}
+                memory1={memory1 || localMemory1}
+                memory2={memory2 || localMemory2}
+                targetEventTranscript={targetEventTranscript || localTargetEvent}
+                predictionErrors={selectedErrors}
               />
             )}
 
@@ -225,6 +230,7 @@ ${memory2Text}`;
               targetEventTranscript={targetEventTranscript || localTargetEvent}
               predictionErrors={selectedErrors}
               onComplete={handlePhase6Complete}
+              treatmentNumber={4}
             />
           </div>
         )}

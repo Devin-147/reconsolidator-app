@@ -202,6 +202,11 @@ ${memory2Text}`;
               isCurrentPhase={currentPhase === 5}
               onComplete={handlePhase5Complete}
               treatmentNumber={2}
+              narrativeScripts={narrativeScripts}
+              memory1={memory1 || localMemory1}
+              memory2={memory2 || localMemory2}
+              targetEventTranscript={targetEventTranscript || localTargetEvent}
+              predictionErrors={selectedErrors}
             />
 
             <PhaseSix
@@ -212,6 +217,7 @@ ${memory2Text}`;
               targetEventTranscript={targetEventTranscript || localTargetEvent}
               predictionErrors={selectedErrors}
               onComplete={handlePhase6Complete}
+              treatmentNumber={2}
             />
           </div>
         )}

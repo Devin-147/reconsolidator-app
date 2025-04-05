@@ -16,7 +16,7 @@ interface PhaseFiveProps {
   treatmentNumber: number;
 }
 
-export const PhaseFive = ({
+export const PhaseFive: React.FC<PhaseFiveProps> = ({
   isCurrentPhase,
   narrativeScripts,
   memory1,
@@ -25,7 +25,7 @@ export const PhaseFive = ({
   predictionErrors,
   onComplete,
   treatmentNumber,
-}: PhaseFiveProps) => {
+}) => {
   const [selectedNarrations, setSelectedNarrations] = useState<number[]>([]);
   const [reversedScripts, setReversedScripts] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);

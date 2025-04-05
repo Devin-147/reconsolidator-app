@@ -6,6 +6,7 @@ import SUDSScale from "../components/SUDSScale";
 import RecordingAnalyzer from "../components/RecordingAnalyzer";
 import AppSidebar from "../components/AppSidebar";
 import { useRecording } from "@/contexts/RecordingContext";
+import { type TreatmentResult } from "@/types/recording";
 import { TargetEventRecorder } from "../components/TargetEventRecorder";
 import { MemoryControls } from "../components/MemoryControls";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -79,9 +80,9 @@ const MemoryForm = () => {
                 memory1={memory1}
                 memory2={memory2}
                 completedTreatments={completedTreatments}
-                setCompletedTreatments={setCompletedTreatments}
+                setCompletedTreatments={setCompletedTreatments as React.Dispatch<React.SetStateAction<TreatmentResult[]>>}
                 memoriesSaved={memoriesSaved}
-                setMemoriesSaved={setMemoriesSaved}
+                setMemoriesSaved={setMemoriesSaved as React.Dispatch<React.SetStateAction<boolean>>}
             />
             <main className="flex-1 p-8">
                 <div className="max-w-4xl mx-auto space-y-8">

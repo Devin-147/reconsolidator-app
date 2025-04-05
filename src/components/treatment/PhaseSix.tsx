@@ -19,7 +19,7 @@ interface PhaseSixProps {
   treatmentNumber: number;
 }
 
-export const PhaseSix = ({
+export const PhaseSix: React.FC<PhaseSixProps> = ({
   isCurrentPhase,
   narrativeScripts,
   memory1,

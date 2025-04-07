@@ -201,13 +201,16 @@ ${memory2Text}`;
               onComplete={() => setCurrentPhase(4)}
             />
 
-            <NarrationPhase 
-              isCurrentPhase={currentPhase === 4}
-              narrativeScripts={narrativeScripts}
-              narrationAudios={narrationAudios}
-              onNarrationRecorded={handleNarrationRecorded}
-              onComplete={handlePhase4Complete}
-            />
+            {currentPhase === 4 && (
+              <NarrationPhase 
+                isCurrentPhase={currentPhase === 4}
+                narrativeScripts={narrativeScripts}
+                narrationAudios={narrationAudios}
+                onNarrationRecorded={handleNarrationRecorded}
+                onComplete={handlePhase4Complete}
+                treatmentNumber={4}
+              />
+            )}
 
             {narrationAudios?.filter(audio => !!audio).length === 11 && (
               <PhaseFive

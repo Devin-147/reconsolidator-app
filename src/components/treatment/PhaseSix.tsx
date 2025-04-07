@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowDown, Play, StopCircle, ArrowUp } from "lucide-react";
-import SUDSScale from "../SUDSScale";
+import { SUDSScale } from "./SUDSScale";
 import { type PredictionError } from "@/components/PredictionErrorSelector";
 import { useRecording } from "@/contexts/RecordingContext";
 import { toast } from "sonner";
@@ -90,7 +90,7 @@ export const PhaseSix: React.FC<PhaseSixProps> = ({
             <h4 className="text-base font-medium">Rate Your Current Distress Level</h4>
             <SUDSScale
               value={currentSudsLevel}
-              onChange={setCurrentSudsLevel}
+              onChange={(value: number) => setCurrentSudsLevel(value)}
             />
           </div>
           <Button

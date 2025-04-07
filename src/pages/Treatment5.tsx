@@ -232,13 +232,16 @@ ${memory2Text}`;
             />
 
             {/* Narration Phase */}
-            <NarrationPhase
-              isCurrentPhase={currentPhase === 4}
-              narrativeScripts={narrativeScripts} // Pass generated scripts
-              narrationAudios={narrationAudios} // Pass current audio state
-              onNarrationRecorded={handleNarrationRecorded}
-              onComplete={handlePhase4Complete}
-            />
+            {currentPhase === 4 && (
+              <NarrationPhase 
+                isCurrentPhase={currentPhase === 4}
+                narrativeScripts={narrativeScripts}
+                narrationAudios={narrationAudios}
+                onNarrationRecorded={handleNarrationRecorded}
+                onComplete={handlePhase4Complete}
+                treatmentNumber={5}
+              />
+            )}
 
             {/* Phase Five - Render only when phase is 5 */}
             {currentPhase === 5 && ( // Only render when phase is 5

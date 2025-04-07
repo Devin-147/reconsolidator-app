@@ -206,6 +206,7 @@ ${memory2Text}`;
               narrationAudios={narrationAudios}
               onNarrationRecorded={handleNarrationRecorded}
               onComplete={handlePhase4Complete}
+              treatmentNumber={1}
             />
 
             <PhaseFive

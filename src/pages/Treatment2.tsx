@@ -145,7 +145,12 @@ ${memory2Text}`;
   };
 
   const handlePhase4Complete = () => {
-    setCurrentPhase(5);
+    const recordedNarrations = narrationAudios?.filter(audio => !!audio).length || 0;
+    if (recordedNarrations === 11) {
+      setCurrentPhase(5);
+    } else {
+      toast.error(`Please complete all 11 narrations (${recordedNarrations}/11 recorded)`);
+    }
   };
 
   return (
@@ -193,9 +198,9 @@ ${memory2Text}`;
             <NarrationPhase 
               isCurrentPhase={currentPhase === 4}
               narrativeScripts={narrativeScripts}
-              narrationAudios={narrationAudios}
               onNarrationRecorded={handleNarrationRecorded}
               onComplete={handlePhase4Complete}
+              treatmentNumber={2}
             />
 
             <PhaseFive

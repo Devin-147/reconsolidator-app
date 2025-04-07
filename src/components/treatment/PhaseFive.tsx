@@ -30,6 +30,7 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
   const [reversedScripts, setReversedScripts] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [hasCompletedReverseNarrations, setHasCompletedReverseNarrations] = useState(false);
+  const [completedReversals, setCompletedReversals] = useState<number>(0);
 
   const handleNarrationSelect = (index: number) => {
     if (selectedNarrations.includes(index)) {
@@ -58,7 +59,10 @@ Memory 1: ${memory1}`;
 
   const handleStopRecording = () => {
     setIsRecording(false);
-    setHasCompletedReverseNarrations(true);
+    setCompletedReversals(prev => prev + 1);
+    if (completedReversals + 1 === 8) {
+      setHasCompletedReverseNarrations(true);
+    }
   };
 
   if (!isCurrentPhase) return null;
@@ -106,7 +110,7 @@ Memory 1: ${memory1}`;
       {/* Recording Section */}
       {reversedScripts.length > 0 && !hasCompletedReverseNarrations && (
         <div className="space-y-4">
-          <h4 className="text-base font-medium">Record Reverse Narrations</h4>
+          <h4 className="text-base font-medium">Record Reverse Narrations ({completedReversals}/8 completed)</h4>
           <p className="text-sm text-muted-foreground">
             Record each reversed narrative in under 3 seconds. Experience everything undoing itself rapidly
             in full color while fully associated in the experience.
@@ -138,21 +142,12 @@ Memory 1: ${memory1}`;
         </div>
       )}
 
+      {/* Completion Section */}
       {hasCompletedReverseNarrations && (
         <div className="space-y-4">
-          <div className="p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
-            <p className="text-green-500 font-medium">
-              Great work! You've completed all reverse narrations.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Just one final phase to go - you'll do a final assessment of your target event.
-            </p>
-          </div>
-          <Button
-            onClick={onComplete}
-            className="w-full"
-          >
-            Continue to Final Assessment for Treatment {treatmentNumber}
+          <p className="text-green-500">✓ Great work! You've completed all 8 reverse narrations.</p>
+          <Button onClick={onComplete} className="w-full">
+            Continue to Final Phase
           </Button>
         </div>
       )}

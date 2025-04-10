@@ -1,15 +1,18 @@
 // src/main.tsx
-import React from 'react'; // Added import
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { ThemeProvider } from './components/theme-provider.tsx'; // Added import (adjust path if needed)
+import { ThemeProvider } from './components/theme-provider.tsx'; // Verify path if needed
+import { AuthProvider } from './contexts/AuthContext'; // <<<--- ADDED IMPORT (Verify path)
 
 createRoot(document.getElementById("root")!).render(
-  // Wrapped App with StrictMode and ThemeProvider
   <React.StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <App />
-    </ThemeProvider>
+    {/* AuthProvider now wraps everything */}
+    <AuthProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <App />
+      </ThemeProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

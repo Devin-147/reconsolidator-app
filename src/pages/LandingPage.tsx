@@ -1,8 +1,10 @@
 // src/pages/LandingPage.tsx
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Import Link for internal links
-import { Button } from '@/components/ui/button'; // Assuming shadcn/ui Button
-import { Input } from '@/components/ui/input'; // Assuming shadcn/ui Input
+import React, { useState } from 'react'; // Import React
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext'; // <<<--- Import useAuth
+
 // import { Checkbox } from "@/components/ui/checkbox"; // Import if using shadcn Checkbox
 // import { Label } from "@/components/ui/label"; // Import if using shadcn Label
 
@@ -11,23 +13,24 @@ const LandingPage = () => {
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState(''); // To display success/error messages
-  const navigate = useNavigate(); // If needed for redirects later
+  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+  const { setUserEmailAndStatus } = useAuth(); // <<<--- Get function from useAuth hook
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); // Prevent default HTML form submission
-    setMessage(''); // Clear previous messages
+    event.preventDefault();
+    setMessage('');
 
-    // --- Checkboxes Validation ---
+    // Checkboxes Validation
     if (!agreedPrivacy || !agreedTerms) {
       setMessage('Please agree to the Privacy Policy and Terms & Conditions.');
-      return; // Stop submission if boxes aren't checked
+      return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/request-access', { // Call your Vercel function
+      const response = await fetch('/api/request-access', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,49 +38,57 @@ const LandingPage = () => {
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json(); // Expecting JSON response
+      const data = await response.json();
 
       if (response.ok) {
-        setMessage('Success! Check your email for your access link to start Treatment 1.');
-        setEmail(''); // Clear email field on success
-        setAgreedPrivacy(false); // Reset checkboxes
+        // --- START: Updated Success Logic ---
+        setMessage('Success! Check your email. Redirecting you to start...');
+
+        // 1. Update Auth Context (sets email, status 'trial', updates localStorage)
+        setUserEmailAndStatus(email, 'trial');
+
+        // 2. Reset local form state (optional for email, good for checkboxes)
+        // setEmail(''); // Keep email maybe?
+        setAgreedPrivacy(false);
         setAgreedTerms(false);
+
+        // 3. Redirect after delay
+        setTimeout(() => {
+          navigate('/start'); // Redirect to app entry point
+        }, 1500);
+        // --- END: Updated Success Logic ---
+
       } else {
-        // Use error message from API if available, otherwise generic message
         setMessage(data.error || 'An error occurred. Please try again.');
+        setIsLoading(false); // <<<--- Make sure loading stops on error
       }
     } catch (error) {
       console.error('Request Access API call failed:', error);
       setMessage('An error occurred. Please check your connection and try again.');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // <<<--- Make sure loading stops on catch
     }
+    // Removed finally block as loading state is handled within try/catch/success path
   };
 
   // Function to handle direct payment (optional, could redirect to a payment page)
   const handleDirectPay = () => {
-    // Option 1: Redirect to a dedicated payment page within your app
-    // navigate('/app/pay');
-    // Option 2: Trigger payment flow directly (more complex state needed here)
     console.log('Trigger direct payment flow...');
-    alert('Direct payment flow not implemented yet.'); // Placeholder
+    alert('Direct payment flow not implemented yet.');
   };
 
 
   return (
-    // Apply base dark theme classes here or on html/body in index.css
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
-      <div className="max-w-4xl mx-auto space-y-16 md:space-y-24"> {/* Increased spacing */}
+      <div className="max-w-4xl mx-auto space-y-16 md:space-y-24">
 
         {/* --- Hero Section --- */}
         <section className="text-center space-y-4 pt-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-primary tracking-tight"> {/* Example Tron-like style */}
+          <h1 className="text-4xl md:text-5xl font-bold text-primary tracking-tight">
             Reconsolidator: Rewrite Painful Memories and Find Lasting Relief
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
             Let go of the past with proven RTM techniques—start with a free treatment and see the difference for yourself.
           </p>
-          {/* CTA Button - could scroll or just be present */}
           <Button size="lg" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
              Try Treatment 1 Free
           </Button>
@@ -97,9 +108,8 @@ const LandingPage = () => {
           <p className="text-center text-muted-foreground">
             Reconsolidator guides you through a simple, narrative-driven process to reprocess painful memories in your mind—no distractions, just results. Here’s how:
           </p>
-          {/* Use a grid for steps */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-            <div className="p-4 border border-border rounded-lg bg-card"> {/* Example card */}
+            <div className="p-4 border border-border rounded-lg bg-card">
               <h3 className="font-semibold mb-2">1. Tell Us About Your Memory</h3>
               <p className="text-sm text-muted-foreground">Answer a few questions to personalize your experience: What emotion do you feel? How intense is the memory? We’ll tailor the process to you.</p>
             </div>
@@ -119,11 +129,10 @@ const LandingPage = () => {
         </section>
 
         {/* --- Pricing / Offer --- */}
-         <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg"> {/* Highlight this section */}
+         <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
             <h2 className="text-2xl md:text-3xl font-semibold">Start for Free, Then Unlock Lifetime Access for $47</h2>
             <p className="text-md text-muted-foreground">Try Treatment 1 for Free: Experience the power of RTM at no cost.</p>
             <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because we’re confident you’ll see results.</p>
-             {/* Optional Enhancements text could go here */}
          </section>
 
         {/* --- Why Choose Section --- */}
@@ -180,12 +189,11 @@ const LandingPage = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
-              className="text-center" // Center placeholder text
+              className="text-center"
             />
 
             {/* Checkboxes */}
-             <div className="space-y-2 text-sm text-left"> {/* Align text left */}
-                 {/* Using standard HTML checkboxes for simplicity */}
+             <div className="space-y-2 text-sm text-left">
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -193,7 +201,7 @@ const LandingPage = () => {
                     checked={agreedPrivacy}
                     onChange={(e) => setAgreedPrivacy(e.target.checked)}
                     disabled={isLoading}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary" // Basic styling
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   />
                   <label htmlFor="privacy" className="text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     I agree to the <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
@@ -206,10 +214,9 @@ const LandingPage = () => {
                     checked={agreedTerms}
                     onChange={(e) => setAgreedTerms(e.target.checked)}
                     disabled={isLoading}
-                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary" // Basic styling
+                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   />
                   <label htmlFor="terms" className="text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                     {/* Link to /terms-conditions if you create that page */}
                     I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link>
                   </label>
                 </div>
@@ -227,15 +234,7 @@ const LandingPage = () => {
           )}
         </section>
 
-        {/* --- Direct Purchase CTA (Optional) --- */}
-        {/* <section className="text-center space-y-4">
-             <h2 className="text-xl font-semibold">Ready for the Full Program?</h2>
-             <p className="text-muted-foreground">Unlock Lifetime Access for $47</p>
-             <p className="text-muted-foreground">Get all 5 treatments and take control of your emotional healing.</p>
-             <Button size="lg" variant="outline" onClick={handleDirectPay}>
-                Get Lifetime Access
-             </Button>
-        </section> */}
+        {/* Removed Optional Direct Purchase Section */}
 
         {/* --- Footer --- */}
         <footer className="text-center text-sm text-muted-foreground py-6 space-x-4 border-t border-border">

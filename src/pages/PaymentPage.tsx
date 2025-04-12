@@ -11,21 +11,37 @@ import {
 import {
     loadStripe,
     StripePaymentElementOptions,
-    StripeElementsOptions, // Needed for Elements provider options
-    Appearance                 // Needed for explicit appearance typing
+    StripeElementsOptions,
+    Appearance
 } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "sonner";
 
 // --- Load Stripe ---
-// Ensure NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is set in Vercel Env Vars and .env.local
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+// ******** ERROR IS HERE ********
+// This line attempts to access the Stripe Publishable Key using Node.js style 'process.env',
+// which is not available in the browser frontend code with Vite.
+// It causes the "process is not defined" error and the subsequent fallback message.
+const stripePublishableKey_INCORRECT = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+// ******** END ERROR ********
+
+
+// --- CORRECT WAY TO ACCESS VITE ENV VAR ---
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+// --- END CORRECTION ---
+
+
+// Check if the key exists and log an error if not. Provide a fallback TEST key.
 if (!stripePublishableKey) {
-    console.error("ERROR: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY environment variable is not set.");
-    // Optionally: Render an error message or throw an error if the key is missing
+    // THIS CONSOLE ERROR WILL APPEAR IF VITE_STRIPE_PUBLISHABLE_KEY is not set in .env.local OR Vercel Env Vars
+    console.error("ERROR: VITE_STRIPE_PUBLISHABLE_KEY environment variable is not set. Using fallback test key.");
 }
-const stripePromise = loadStripe(stripePublishableKey || 'pk_test_...'); // Provide a fallback test key if needed
+
+// Initialize stripePromise ONCE using the CORRECT variable or fallback
+const stripePromise = loadStripe(stripePublishableKey || 'pk_test_YOUR_FALLBACK_TEST_KEY'); // Replace with your actual fallback test key
+
 
 // --- CheckoutForm Component (Internal) ---
 // Renders the actual Payment Element and handles submission
@@ -53,13 +69,11 @@ const CheckoutForm = ({ sudsResult }: { sudsResult?: number | null }) => {
     // Trigger payment confirmation using Payment Element
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      // Use redirect: 'if_required' to handle results client-side
-      redirect: 'if_required'
+      redirect: 'if_required' // Handle redirect manually
     });
 
     if (error) {
       console.error("Stripe Payment Confirmation Error:", error);
-      // Check for specific error types if needed (e.g., card_error)
       setMessage(error.message || "An unexpected error occurred during payment.");
       setIsLoading(false);
       return;
@@ -73,24 +87,31 @@ const CheckoutForm = ({ sudsResult }: { sudsResult?: number | null }) => {
                 setMessage("Payment successful! Granting access...");
                 toast.success("Payment successful! Access granted.");
 
-                // --- Update Auth State ---
+                // Update Auth State
                 console.log("Updating auth state to 'paid'.");
                 if (userEmail) {
                     setUserEmailAndStatus(userEmail, 'paid');
                     localStorage.setItem('reconsolidator_paid_access', 'true');
-                    localStorage.removeItem('reconsolidator_access_granted'); // Remove trial flag
+                    localStorage.removeItem('reconsolidator_access_granted');
                 } else {
                     console.warn("Cannot update auth status optimistically: userEmail not found.");
+                    const emailFromStripe = paymentIntent.receipt_email;
+                    if (emailFromStripe) {
+                        console.log(`Using email from Stripe receipt: ${emailFromStripe}`);
+                        setUserEmailAndStatus(emailFromStripe, 'paid');
+                        localStorage.setItem('reconsolidator_paid_access', 'true');
+                        localStorage.removeItem('reconsolidator_access_granted');
+                    }
                 }
                 // Trigger background check to verify with backend/webhook update
                 checkAuthStatus();
-                // --- End Update Auth State ---
+                // End Update Auth State
 
                 // Redirect after success
                 setTimeout(() => {
-                    navigate('/start'); // Redirect to app dashboard/start
+                    navigate('/start');
                 }, 1500);
-                break; // Don't setIsLoading(false) as we navigate away
+                break;
 
             case 'processing':
                 setMessage("Payment processing. We'll update you when payment is received.");
@@ -98,7 +119,6 @@ const CheckoutForm = ({ sudsResult }: { sudsResult?: number | null }) => {
                 break;
 
             case 'requires_payment_method':
-                 // This case might happen if initial payment failed and needs retry
                 setMessage("Payment failed. Please check your details or try another payment method.");
                 setIsLoading(false);
                 break;
@@ -109,16 +129,13 @@ const CheckoutForm = ({ sudsResult }: { sudsResult?: number | null }) => {
                 break;
         }
     } else {
-        // This case should ideally not be reached with redirect: 'if_required' unless there's an edge case
          setMessage("Something went wrong, payment status unclear.");
          setIsLoading(false);
     }
   };
 
-  // Options specific to the Payment Element itself
   const paymentElementOptions: StripePaymentElementOptions = {
-    layout: "tabs" // or 'accordion', 'auto'
-    // Add other Payment Element options here if needed (e.g., defaultValues)
+    layout: "tabs"
   };
 
   return (
@@ -135,16 +152,15 @@ const CheckoutForm = ({ sudsResult }: { sudsResult?: number | null }) => {
       <Button
         disabled={isLoading || !stripe || !elements}
         id="submit"
-        className="w-full mt-2" // Reduced margin top slightly
+        className="w-full mt-2"
         size="lg"
-        type="submit" // Explicitly set type to submit
+        type="submit"
       >
         <span id="button-text">
           {isLoading ? "Processing..." : "Pay $47 Now"}
         </span>
       </Button>
 
-      {/* Show any error or success messages */}
       {message && <div id="payment-message" className={`mt-4 text-sm text-center ${message.includes('successful') ? 'text-green-400' : 'text-red-400'}`}>{message}</div>}
     </form>
   );
@@ -152,33 +168,28 @@ const CheckoutForm = ({ sudsResult }: { sudsResult?: number | null }) => {
 
 
 // --- PaymentPage Component (Main Export) ---
-// Fetches clientSecret and sets up the Elements provider
 const PaymentPage = () => {
-  const [clientSecret, setClientSecret] = useState<string | null>(null); // Initialize as null
-  const [fetchError, setFetchError] = useState<string | null>(null); // State for fetch errors
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const location = useLocation();
-  const { userEmail } = useAuth(); // Get email to potentially pass to backend
+  const { userEmail } = useAuth();
 
-  // Extract potential SUDs result passed via navigation state
   const sudsResult = location.state?.sudsReduction as number | undefined;
 
   useEffect(() => {
-    setFetchError(null); // Clear previous errors on mount
-    // Create PaymentIntent when the component mounts
+    setFetchError(null);
     fetch("/api/create-payment-intent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // Send amount in cents. Pass userEmail if available.
       body: JSON.stringify({
           amount: 4700,
           currency: 'usd',
           email: userEmail // Pass email for metadata/receipt
        }),
     })
-      .then(async (res) => { // Make async to await res.json() on error
+      .then(async (res) => {
           if (!res.ok) {
-             // Try to get error message from backend response body
-             const errorData = await res.json().catch(() => ({})); // Catch JSON parse error
+             const errorData = await res.json().catch(() => ({}));
              throw new Error(errorData?.error || `Failed to fetch Payment Intent: ${res.statusText}`);
           }
           return res.json();
@@ -187,7 +198,6 @@ const PaymentPage = () => {
           if (data.clientSecret) {
              setClientSecret(data.clientSecret);
           } else {
-              // This case might happen if the backend returns 200 OK but no clientSecret
               throw new Error("Client Secret not received from server.");
           }
        })
@@ -196,62 +206,60 @@ const PaymentPage = () => {
           setFetchError(error.message || "Could not initialize payment form. Please try refreshing.");
           toast.error("Could not initialize payment. Please try refreshing.");
       });
-  }, [userEmail]); // Re-fetch if userEmail changes (might not be necessary)
+  }, [userEmail]);
 
-  // Define appearance object with explicit Appearance type
   const appearance: Appearance = {
-    theme: 'night', // Use 'night', 'stripe', or 'flat'
+    theme: 'night',
     labels: 'floating',
     variables: {
-        colorPrimary: '#8b5cf6', // Example: Match your primary color
-        colorBackground: '#1a1a2e', // Example: Match your dark background
+        colorPrimary: '#8b5cf6',
+        colorBackground: '#1a1a2e',
         colorText: '#ffffff',
         colorDanger: '#ef4444',
-        fontFamily: 'system-ui, sans-serif', // Use your actual font stack
+        fontFamily: 'system-ui, sans-serif',
         spacingUnit: '4px',
-        borderRadius: '6px', // Slightly larger radius example
-         // See Stripe docs for more appearance variables
+        borderRadius: '6px',
     },
-    rules: { // Example rules
+    rules: {
         '.Input': {
-            borderColor: 'hsl(var(--border))', // Use CSS variable
-             backgroundColor: '#0000004d' // Example darker input bg
+            borderColor: 'hsl(var(--border))',
+             backgroundColor: '#0000004d'
         },
          '.Input:focus': {
             borderColor: 'hsl(var(--primary))',
-            boxShadow: '0 0 0 1px hsl(var(--ring))' // Example focus ring
+            boxShadow: '0 0 0 1px hsl(var(--ring))'
          }
     }
   };
 
-  // Define options for the Elements provider, using the structure required by Stripe
   const options: StripeElementsOptions = {
-    // clientSecret is NOT passed here when using Payment Element mode 'payment'
-    mode: 'payment', // Essential for Payment Element with Payment Intent
-    amount: 4700,    // Required for mode 'payment'
-    currency: 'usd', // Required for mode 'payment'
-    appearance: appearance, // Pass the defined appearance object
+    mode: 'payment',
+    amount: 4700,
+    currency: 'usd',
+    appearance: appearance,
   };
+
+  // Render null or loading indicator if stripePromise is not yet ready (or key missing)
+  if (!stripePromise) {
+      return <div className="min-h-screen bg-background text-foreground p-6 md:p-10 flex items-center justify-center"><p className="text-red-500">Stripe could not be initialized. Check console for errors.</p></div>;
+  }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10 flex items-center justify-center">
       <div className="w-full max-w-md bg-card p-6 md:p-8 rounded-lg shadow-xl border border-border">
         {fetchError ? (
-            // Display error if clientSecret fetch failed
             <div className="text-center text-red-400">
                 <p>Error initializing payment:</p>
                 <p className="text-sm">{fetchError}</p>
             </div>
         ) : clientSecret ? (
-          // Render Elements provider only when clientSecret is available
           <Elements stripe={stripePromise} options={options}>
             <CheckoutForm sudsResult={sudsResult} />
           </Elements>
         ) : (
-          // Show loading state while fetching clientSecret
           <div className="text-center py-10">
              <p className="text-muted-foreground animate-pulse">Initializing Secure Payment...</p>
-             {/* Add a spinner component here if desired */}
           </div>
         )}
          <p className="text-xs text-muted-foreground text-center mt-4">

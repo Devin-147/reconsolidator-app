@@ -19,17 +19,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "sonner";
 
 // --- Load Stripe ---
-// Ensure VITE_STRIPE_PUBLISHABLE_KEY is set in Vercel Env Vars and .env.local
+// Uses the CORRECT Vite way to access the environment variable
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
 // Check if the key exists and log an error if not. Provide a fallback TEST key.
 if (!stripePublishableKey) {
     console.error("ERROR: VITE_STRIPE_PUBLISHABLE_KEY environment variable is not set. Using fallback test key.");
-    // Consider throwing an error or rendering an error state if the key is truly required
 }
 
 // Initialize stripePromise ONCE using the variable or fallback
-const stripePromise = loadStripe(stripePublishableKey || 'pk_test_YOUR_FALLBACK_TEST_KEY'); // Replace with a valid fallback if needed
+// IMPORTANT: Replace 'pk_test_YOUR_FALLBACK_TEST_KEY' with an actual Stripe TEST publishable key
+const stripePromise = loadStripe(stripePublishableKey || 'pk_test_YOUR_FALLBACK_TEST_KEY');
 
 
 // --- CheckoutForm Component (Internal) ---
@@ -84,13 +84,10 @@ const CheckoutForm = ({ sudsResult }: { sudsResult?: number | null }) => {
                     localStorage.removeItem('reconsolidator_access_granted');
                 } else {
                     console.warn("Cannot update auth status optimistically: userEmail not found.");
-                    // Attempt to use email from Payment Intent if available
                     const emailFromStripe = paymentIntent.receipt_email;
                     if (emailFromStripe) {
                         console.log(`Using email from Stripe receipt: ${emailFromStripe}`);
                         setUserEmailAndStatus(emailFromStripe, 'paid');
-                        // Maybe store this email in localStorage if needed?
-                        // localStorage.setItem('reconsolidator_user_email', emailFromStripe);
                         localStorage.setItem('reconsolidator_paid_access', 'true');
                         localStorage.removeItem('reconsolidator_access_granted');
                     }
@@ -230,6 +227,12 @@ const PaymentPage = () => {
     currency: 'usd',
     appearance: appearance,
   };
+
+  // Render null or loading indicator if stripePromise is not yet ready (or key missing)
+  if (!stripePromise) {
+      return <div className="min-h-screen bg-background text-foreground p-6 md:p-10 flex items-center justify-center"><p className="text-red-500">Stripe could not be initialized. Check console for errors.</p></div>;
+  }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10 flex items-center justify-center">

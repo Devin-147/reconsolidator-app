@@ -1,4 +1,4 @@
-// src/pages/Index.tsx
+d// src/pages/Index.tsx
 import { Upload, ArrowLeft, Info, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -87,7 +87,7 @@ const MemoryForm = () => {
             <main className="flex-1 p-8">
                 <div className="max-w-4xl mx-auto space-y-8">
                     <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-bold">Reconsolidation Program</h1>
+                        <h1 className="text-2xl font-bold">The Reconsolidation Program</h1>
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>

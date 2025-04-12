@@ -1,4 +1,4 @@
-d// src/pages/Index.tsx
+// src/pages/Index.tsx
 import { Upload, ArrowLeft, Info, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";

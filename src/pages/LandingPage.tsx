@@ -84,10 +84,10 @@ const LandingPage = () => {
         {/* --- Hero Section --- */}
         <section className="text-center space-y-4 pt-10">
           <h1 className="text-4xl md:text-5xl font-bold text-primary tracking-tight">
-            Reconsolidator: Rewrite Painful Memories and Find Lasting Relief
+            The Reconsolidation Program: Rewrite a Memory and Find Lasting Relief
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Let go of the past with proven RTM techniques—start with a free treatment and see the difference for yourself.
+            Let go of the past with proven RTM techniques—start with a free treatment and experience the difference for yourself.
           </p>
           <Button size="lg" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
              Try Treatment 1 Free
@@ -96,26 +96,26 @@ const LandingPage = () => {
 
         {/* --- Pain Point / Benefit --- */}
         <section className="text-center space-y-3">
-            <h2 className="text-2xl md:text-3xl font-semibold">Heal from Emotional Pain in Just 5 Guided Treatments</h2>
+            <h2 className="text-2xl md:text-3xl font-semibold">Heal from an Emotional Memory in Just 5 Guided Treatments</h2>
             <p className="text-md text-muted-foreground max-w-3xl mx-auto">
-              Struggling with memories that won’t let go—like a painful breakup, a lingering rejection, or a moment of shame? Reconsolidator uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
+              Struggling with memories that won’t let go—like a painful breakup, a lingering rejection, or a moment of shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
             </p>
         </section>
 
         {/* --- How It Works --- */}
         <section className="space-y-8">
-          <h2 className="text-2xl md:text-3xl font-semibold text-center">How Reconsolidator Works</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold text-center">How the Reconsolidation Program Works</h2>
           <p className="text-center text-muted-foreground">
-            Reconsolidator guides you through a simple, narrative-driven process to reprocess painful memories in your mind—no distractions, just results. Here’s how:
+            The program guides you through a simple, narrative-driven process to reprocess painful memories in your mind—no distractions, just results. Here’s how:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
             <div className="p-4 border border-border rounded-lg bg-card">
-              <h3 className="font-semibold mb-2">1. Tell Us About Your Memory</h3>
+              <h3 className="font-semibold mb-2">1. Narrate Your Memory</h3>
               <p className="text-sm text-muted-foreground">Answer a few questions to personalize your experience: What emotion do you feel? How intense is the memory? We’ll tailor the process to you.</p>
             </div>
              <div className="p-4 border border-border rounded-lg bg-card">
               <h3 className="font-semibold mb-2">2. Choose Mismatch Experiences</h3>
-              <p className="text-sm text-muted-foreground">Select 11 unexpected experiences to disrupt the memory’s emotional hold, making it easier to rewrite.</p>
+              <p className="text-sm text-muted-foreground">Select 11 novel experiences to disrupt the memory’s emotional hold, making it easier to rewrite.</p>
             </div>
              <div className="p-4 border border-border rounded-lg bg-card">
               <h3 className="font-semibold mb-2">3. Follow the Guided Narrative</h3>
@@ -131,20 +131,20 @@ const LandingPage = () => {
         {/* --- Pricing / Offer --- */}
          <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
             <h2 className="text-2xl md:text-3xl font-semibold">Start for Free, Then Unlock Lifetime Access for $47</h2>
-            <p className="text-md text-muted-foreground">Try Treatment 1 for Free: Experience the power of RTM at no cost.</p>
+            <p className="text-md text-muted-foreground">Try Treatment 1 for Free: Experience the power of memory reconsolidation at no cost.</p>
             <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because we’re confident you’ll see results.</p>
          </section>
 
         {/* --- Why Choose Section --- */}
         <section className="space-y-8">
-           <h2 className="text-2xl md:text-3xl font-semibold text-center">Why Choose Reconsolidator?</h2>
+           <h2 className="text-2xl md:text-3xl font-semibold text-center">Why Choose the Reconsolidation Program?</h2>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <div className="space-y-4">
                    <h3 className="text-xl font-semibold text-primary">Proven Science, Real Results</h3>
                    <ul className="space-y-2 list-disc list-inside text-muted-foreground">
                        <li>RTM-Backed: Based on the protocol with a 90% success rate in clinical studies.</li>
                        <li>Measurable Progress: Track your distress with SUDs—often 40–50% reduction after one treatment.</li>
-                       <li>Personalized Healing: Tailored narratives fit your unique memory and emotions.</li>
+                       <li>There is nothing else like this. An application built on targeting an event and using the reconsolidation process for modifying a problem memory for good!</li>
                    </ul>
                </div>
                <div className="space-y-4">
@@ -164,7 +164,7 @@ const LandingPage = () => {
            <h2 className="text-2xl md:text-3xl font-semibold text-center">What Users Are Saying</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <blockquote className="p-4 border border-border rounded-lg bg-card italic">
-                    <p className="mb-2">“After my breakup, I couldn’t stop replaying the rejection. Reconsolidator helped me reduce my distress by 50% in just one session. I feel lighter already!”</p>
+                    <p className="mb-2">“After my breakup, I couldn’t stop replaying memories of the rejection. THe Reconsolidation program helped me reduce my distress by 50% in just one session. I feel lighter already!”</p>
                     <footer className="text-sm text-primary not-italic"> – Sarah, 29</footer>
                 </blockquote>
                  <blockquote className="p-4 border border-border rounded-lg bg-card italic">
@@ -176,10 +176,10 @@ const LandingPage = () => {
 
         {/* --- Email Capture Form Section --- */}
         <section id="email-form" className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
-          <h2 className="text-2xl md:text-3xl font-semibold">Start Your Healing Journey Today</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold">Start Rewriting a Past Memory Today</h2>
           <p className="text-muted-foreground">
-            You don’t have to live with the weight of painful memories. Try Treatment 1 for Free. <br/>
-            Enter your email to get instant access—no commitment required.
+            You don’t have to keep living with the weight of a painful memory. Try Treatment 1 for Free. <br/>
+            Enter your email to get instant access — no commitment required.
           </p>
           <form onSubmit={handleFormSubmit} className="max-w-md mx-auto space-y-4">
             <Input

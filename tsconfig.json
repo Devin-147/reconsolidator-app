@@ -1,40 +1,40 @@
 {
-  // "files": [], // DELETE THIS LINE ENTIRELY
   "compilerOptions": {
-    // --- Keep your path alias ---
+    /* --- Path Alias --- */
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
 
-    // --- Recommended Vite/React TS settings ---
+    /* --- Vite/React Build Options --- */
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "skipLibCheck": true, // You already had this
-    "moduleResolution": "bundler", // 'bundler' is generally preferred for Vite
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true, // Vite handles emitting files
+    "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting / Strictness Options */
-    "strict": true, // You had this
-    // You had these set to false, which is generally discouraged, but keep if needed
-    "noImplicitAny": false,
+    /* --- Vite Client Types (Modified Path) --- */
+    "types": ["./node_modules/vite/client"], // <<<--- MODIFIED THIS LINE
+
+    /* --- Linting / Strictness Options --- */
+    "strict": true,
+    "noImplicitAny": false, // Keep your overrides if needed
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "strictNullChecks": false, // Part of "strict": true, redundant if strict is true
-    "noFallthroughCasesInSwitch": true, // Good practice
+    "strictNullChecks": false, // Note: Redundant if strict: true
+    "noFallthroughCasesInSwitch": true,
 
-    "esModuleInterop": true // Keep if needed for CJS compatibility
-    // "allowJs": true, // Only keep if you actively mix JS and TS files in src
+    "esModuleInterop": true // Keep if needed
 
   },
-  // --- Add this include section ---
-  "include": ["src"], // Tells TS where your source code is
-
-  // --- Make sure "references" is NOT present ---
+  "include": ["src", "api"], // Scan 'src' AND 'api' folders for TS files (if any in api)
+  // Exclude node_modules and build output
+  "exclude": ["node_modules", "dist"]
+  // Ensure "references" and "files" are NOT present
 }

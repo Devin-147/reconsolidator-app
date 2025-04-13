@@ -77,8 +77,8 @@ export default async function handler(req, res) {
       const { data, error: emailError } = await resend.emails.send({
         from: verifiedSenderEmail, // Use the verified sender
         to: [email],
-        subject: 'Welcome to Reconsolidator - Start Treatment 1!',
-        html: `<p>Welcome!</p><p>You can now access Treatment 1. Please return to the app or use this link to get started: <a href="https://app.reprogrammingmind.com/start">Start Treatment 1</a></p>`,
+        subject: 'Welcome to The Reconsolidation Program - Start Treatment 1!',
+        html: `<p>Welcome!</p><p>You can now access Treatment 1. Please return to the app or use this link to get started: <a href="https://app.reprogrammingmind.com/treatment-1">Start Treatment 1</a></p>`,
       });
 
       if (emailError) {

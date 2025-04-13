@@ -54,7 +54,7 @@ const LandingPage = () => {
 
         // 3. Redirect after delay
         setTimeout(() => {
-          navigate('/start'); // Redirect to app entry point
+          navigate('/treatment-1'); // Redirect to app entry point
         }, 1500);
         // --- END: Updated Success Logic ---
 
@@ -84,7 +84,7 @@ const LandingPage = () => {
         {/* --- Hero Section --- */}
         <section className="text-center space-y-4 pt-10">
           <h1 className="text-4xl md:text-5xl font-bold text-primary tracking-tight">
-            The Reconsolidation Program: Rewrite a Memory and Find Lasting Relief
+            The Reconsolidation Program: Target a Memory to Rewrite and Find Lasting Relief
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
             Let go of the past with proven RTM techniques—start with a free treatment and experience the difference for yourself.

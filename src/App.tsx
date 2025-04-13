@@ -72,8 +72,7 @@ function App() {
               {/* <Route path="/verify-access" element={<VerifyAccessPage />} /> */}
 
               {/* --- Core Application Routes (Protected) --- */}
-              <Route path="/start" element={<ProtectedRoute requiredStatus='trial'><MainAppEntry /></ProtectedRoute>} />
-              <Route path="/treatment-1" element={<ProtectedRoute requiredStatus='trial'><Treatment1 /></ProtectedRoute>} />
+                            <Route path="/treatment-1" element={<ProtectedRoute requiredStatus='trial'><Treatment1 /></ProtectedRoute>} />
 
               {/* --- Payment Page Route --- */}
               {/* Requires trial access to reach */}

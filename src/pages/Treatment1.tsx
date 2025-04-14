@@ -54,24 +54,25 @@ const Treatment1 = () => {
   console.log("Current Phase:", currentPhase);
 
   // --- Load from localStorage effect (Consider doing this in Context Provider) ---
-  useEffect(() => {
-    // Only load if context values are initially empty
-    if (!memory1 && !memory2 && !targetEventTranscript) {
-      const savedMemories = localStorage.getItem("memories"); // Or 'recordingState'? Be consistent
-      if (savedMemories) {
-        try {
-          const state = JSON.parse(savedMemories);
-          if (state.memory1) setLocalMemory1(state.memory1);
-          if (state.memory2) setLocalMemory2(state.memory2);
-          // Adjust based on actual localStorage key for target event
-          if (state.targetEvent) setLocalTargetEvent(state.targetEvent);
-          console.log("T1: Loaded fallback memories from localStorage");
-        } catch (error) {
-          console.error("T1: Error parsing localStorage memories data:", error);
-        }
+ useEffect(() => {
+  const hasAccess = localStorage.getItem('reconsolidator_access_granted') === 'true';
+
+  if (!hasAccess) {
+    // Fallback: Check Supabase for access
+    const checkAccess = async () => {
+      const { data, error } = await supabase
+        .from('user_payments') // Replace with your table name
+        .select('has_access')
+        .eq('email', localStorage.getItem('reconsolidator_user_email'));
+
+      if (error || !data || !data[0]?.has_access) {
+        navigate('/'); // Redirect if no access
       }
-    }
-  }, [memory1, memory2, targetEventTranscript]); // Dependencies look okay
+    };
+
+    checkAccess();
+  }
+}, [navigate]);
 
   // --- Check prerequisites effect ---
   useEffect(() => {

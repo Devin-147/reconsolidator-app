@@ -46,39 +46,52 @@ export default async function handler(req, res) {
   // 2. Handle the event
   switch (event.type) {
     case 'payment_intent.succeeded':
-      const paymentIntent = event.data.object;
-      console.log(`✅ PaymentIntent successful: ${paymentIntent.id}`);
+  const paymentIntent = event.data.object;
+  console.log(`✅ PaymentIntent successful: ${paymentIntent.id}`);
 
-      // Extract metadata
-      const user_email = paymentIntent.metadata.user_email;
-      const user_name = paymentIntent.metadata.user_name || '';
-      const suds_initial = paymentIntent.metadata.suds_initial || 'N/A';
-      const suds_final = paymentIntent.metadata.suds_final || 'N/A';
-      const firstName = user_name.split(' ')[0] || 'User'; // Simple first name extraction
+  // Extract metadata from the payment intent
+  const user_email = paymentIntent.metadata.user_email;
 
-      if (!user_email) {
-         console.error(`⚠️ Missing user_email in metadata for PaymentIntent: ${paymentIntent.id}`);
-         break; // Don't proceed without email
-      }
+  if (!user_email) {
+    console.error(`⚠️ Missing user_email in metadata for PaymentIntent: ${paymentIntent.id}`);
+    break; // Don't proceed without email
+  }
 
-      // 3. Update Database (Supabase Example)
-      try {
-         // Assuming you have a table 'user_payments' with 'email' and 'has_paid' columns
-         const { data, error: dbError } = await supabase
-           .from('user_payments') // YOUR_TABLE_NAME
-           .upsert({ email: user_email, has_paid: true }, { onConflict: 'email' }) // Insert or update if email exists
-           .select(); // Optionally select the inserted/updated row
+  // Update Supabase
+  try {
+    // Fetch the existing user to check current access
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('user_payments') // Replace with your table name
+      .select('has_access')
+      .eq('email', user_email)
+      .single();
 
-         if (dbError) {
-           throw dbError;
-         }
-         console.log(`💾 Database updated for email: ${user_email}`, data);
-      } catch (dbError) {
-         console.error(`🚨 Database update error for ${user_email}:`, dbError.message);
-         // Decide if you should still try to send email or return an error
-         // For now, we'll log and continue to email attempt
-      }
+    if (fetchError) {
+      console.error(`🚨 Could not fetch user: ${fetchError.message}`);
+      break;
+    }
 
+    // Preserve 'has_access' if it already exists
+    const updatedAccess = existingUser?.has_access || true; // Keep true if already set
+
+    // Upsert the user with updated fields
+    const { error: updateError } = await supabase
+      .from('user_payments')
+      .upsert(
+        { email: user_email, has_access: updatedAccess, paid: true }, // Update paid status
+        { onConflict: 'email' }
+      );
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    console.log(`💾 Database updated for email: ${user_email}`);
+  } catch (error) {
+    console.error(`🚨 Database update error for ${user_email}:`, error.message);
+  }
+
+  break;
 
       // 4. Send Email using Resend
       try {

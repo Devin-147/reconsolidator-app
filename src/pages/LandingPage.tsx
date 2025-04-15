@@ -31,64 +31,69 @@ const LandingPage = () => {
   // };
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setMessage('');
+  event.preventDefault();
+  setMessage('');
 
-    if (!agreedPrivacy || !agreedTerms) {
-      setMessage('Please agree to the Privacy Policy and Terms & Conditions.');
-      return;
-    }
-    // Add reCAPTCHA token check if implemented
-    // if (!recaptchaToken) { setMessage('Please complete CAPTCHA.'); return; }
+  if (!agreedPrivacy || !agreedTerms) {
+    setMessage('Please agree to the Privacy Policy and Terms & Conditions.');
+    return;
+  }
 
-    setIsLoading(true);
+  setIsLoading(true);
 
-    try {
-      const response = await fetch('/api/request-access', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-         // Add token if using reCAPTCHA
-        body: JSON.stringify({ email /*, token: recaptchaToken */ }),
-      });
+  try {
+    // Step 1: Send email to backend to grant access
+    const response = await fetch('/api/request-access', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-        setMessage('Success! Check your email. Redirecting you to start...');
-         try {
-            localStorage.setItem('reconsolidator_access_granted', 'true');
-            localStorage.setItem('reconsolidator_user_email', email);
-          } catch (e) { console.error("LocalStorage Error:", e); }
-        setUserEmailAndStatus(email, 'trial');
-        setAgreedPrivacy(false);
-        setAgreedTerms(false);
-        // Reset reCAPTCHA if implemented
-        // recaptchaRef.current?.reset(); setRecaptchaToken(null);
-        setTimeout(() => {
-          navigate('/treatment-1'); // Corrected redirect
-        }, 1500);
-      } else {
-        setMessage(data.error || 'An error occurred. Please try again.');
-         // Reset reCAPTCHA if implemented
-         // recaptchaRef.current?.reset(); setRecaptchaToken(null);
+    if (response.ok) {
+      // Step 2: Update Supabase to grant free access
+      const { data: supabaseUpdate, error: supabaseError } = await supabase
+        .from('user_payments') // Replace 'user_payments' with your table name
+        .upsert(
+          { email, has_access: true, paid: false }, // Grant free access
+          { onConflict: 'email' }
+        );
+
+      if (supabaseError) {
+        console.error('Error updating Supabase:', supabaseError.message);
+        setMessage('Error granting access. Please try again.');
         setIsLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Request Access API call failed:', error);
-      setMessage('An error occurred. Please check your connection and try again.');
-       // Reset reCAPTCHA if implemented
-       // recaptchaRef.current?.reset(); setRecaptchaToken(null);
+
+      // Step 3: Update local state and redirect user
+      try {
+        localStorage.setItem('reconsolidator_access_granted', 'true');
+        localStorage.setItem('reconsolidator_user_email', email);
+      } catch (e) {
+        console.error('LocalStorage Error:', e);
+      }
+
+      setUserEmailAndStatus(email, 'trial'); // Set trial status for free access
+      setAgreedPrivacy(false);
+      setAgreedTerms(false);
+      setMessage('Success! Redirecting you to start...');
+      setTimeout(() => {
+        navigate('/treatment-1'); // Redirect to Treatment 1
+      }, 1500);
+    } else {
+      setMessage(data.error || 'An error occurred. Please try again.');
       setIsLoading(false);
     }
-  };
-
-  // Function to handle direct payment (optional, could redirect to a payment page)
-  const handleDirectPay = () => {
-    console.log('Trigger direct payment flow...');
-    alert('Direct payment flow not implemented yet.');
-  };
+  } catch (error) {
+    console.error('Request Access API call failed:', error);
+    setMessage('An error occurred. Please check your connection and try again.');
+    setIsLoading(false);
+  }
+};
 
 
   return (

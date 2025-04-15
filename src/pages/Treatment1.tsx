@@ -13,6 +13,7 @@ import { NarrationPhase } from "@/components/treatment/NarrationPhase";
 import { PhaseFive } from "@/components/treatment/PhaseFive";
 import { type PredictionError } from "@/components/PredictionErrorSelector";
 import { PhaseSix } from "@/components/treatment/PhaseSix";
+import { supabase } from '../supabaseClient';
 // Import TreatmentResult type if needed for state
 import { TreatmentResult } from "@/types/recording"; // Adjust path if needed
 

@@ -9,6 +9,7 @@ import { RxMix } from "react-icons/rx";
 import { GrCatalog } from "react-icons/gr";
 import { FaCalendarCheck } from "react-icons/fa6";
 import { GiProgression } from "react-icons/gi";
+import { supabase } from '../supabaseClient';
 // Import reCAPTCHA components if using it
 // import ReCAPTCHA from "react-google-recaptcha";
 // import { useRef } from 'react';

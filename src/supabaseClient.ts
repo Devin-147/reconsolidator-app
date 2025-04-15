@@ -1,23 +1,30 @@
-// src/lib/supabaseClient.ts
+// src/supabaseClient.ts  <-- Path is correct based on your structure
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // --- IMPORTANT: Environment Variable Handling ---
-// Use environment variables for your Supabase URL and Anon Key.
+// Vite uses import.meta.env and requires VITE_ prefix for client-side exposure
 
-// Adjust based on your framework (e.g., NEXT_PUBLIC_ for Next.js, VITE_ for Vite)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL; // OR import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; // OR import.meta.env.VITE_SUPABASE_ANON_KEY
+// --- THIS IS THE CORRECT WAY FOR VITE ---
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// --- END CORRECT WAY ---
+
 
 // --- Check if variables are set ---
+// Add console logs BEFORE the check for temporary debugging if needed
+// console.log("RUNTIME VITE_SUPABASE_URL:", supabaseUrl);
+// console.log("RUNTIME VITE_SUPABASE_ANON_KEY:", typeof supabaseAnonKey);
+
 if (!supabaseUrl) {
-  throw new Error("Supabase URL is not defined. Check your NEXT_PUBLIC_SUPABASE_URL (or VITE_SUPABASE_URL) environment variable.");
+  // Update error message to only mention VITE_
+  throw new Error("Supabase URL is not defined in environment. Check VITE_SUPABASE_URL variable in Vercel.");
 }
 if (!supabaseAnonKey) {
-  throw new Error("Supabase Anon Key is not defined. Check your NEXT_PUBLIC_SUPABASE_ANON_KEY (or VITE_SUPABASE_ANON_KEY) environment variable.");
+  // Update error message to only mention VITE_
+  throw new Error("Supabase Anon Key is not defined in environment. Check VITE_SUPABASE_ANON_KEY variable in Vercel.");
 }
 
 // --- Create and Export the Client ---
-// We assert the types using 'as string' because we've checked they exist above.
 export const supabase: SupabaseClient = createClient(supabaseUrl as string, supabaseAnonKey as string);
 
-console.log("Supabase client initialized successfully."); // Optional: for debugging
+console.log("Supabase client initialization attempted.");

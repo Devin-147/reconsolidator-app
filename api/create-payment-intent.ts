@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       automatic_payment_methods: { enabled: true },
       metadata: metadata,
       receipt_email: email, // Optional: Stripe can send its own receipt
-      description: 'Payment for Reconsolidator Paid Treatments',
+      description: 'Payment for The Reconsolidation Program Treatments',
     });
 
     // Send the client_secret back to the frontend

@@ -46,8 +46,15 @@ export default async function handler(req, res) {
       paymentIntentId: paymentIntent.id, // Optional, good for debugging
     });
 
-  } catch (error) {
-    console.error("Error creating PaymentIntent:", error);
-    res.status(500).json({ error: `Error creating payment intent: ${error.message}` });
+  } catch (error: unknown) { // Added ': unknown'
+    console.error('Error creating payment intent:', error);
+    // Safely get the message
+    let errorMessage = 'An unknown server error occurred.';
+    if (error instanceof Error) {
+      errorMessage = error.message; // Use message safely
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    res.status(500).json({ error: `Internal Server Error: ${errorMessage}` });
   }
 }

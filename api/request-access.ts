@@ -96,8 +96,15 @@ export default async function handler(req, res) {
     // --- Return Success ---
     res.status(200).json({ message: 'Access request received. Welcome!' });
 
-  } catch (error) {
-    console.error("Error in /api/request-access:", error);
-    res.status(500).json({ error: `Server error: ${error.message}` });
+  } catch (error: unknown) { // Added ': unknown'
+    console.error('Error processing access request:', error);
+     // Safely get the message
+    let errorMessage = 'An unknown server error occurred.';
+    if (error instanceof Error) {
+      errorMessage = error.message; // Use message safely
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    res.status(500).json({ error: `Server error: ${errorMessage}` });
   }
 }

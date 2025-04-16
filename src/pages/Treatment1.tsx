@@ -62,7 +62,7 @@ const Treatment1 = () => {
     // Fallback: Check Supabase for access
     const checkAccess = async () => {
       const { data, error } = await supabase
-        .from('user_payments') // Replace with your table name
+        .from('users') // Replace with your table name
         .select('has_access')
         .eq('email', localStorage.getItem('reconsolidator_user_email'));
 

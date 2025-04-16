@@ -123,7 +123,8 @@ const LandingPage = () => {
           <Button size="lg" className="mt-4 mb-4" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Try Treatment 1 Free
           </Button>
-          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory in Just 5 Guided Treatments (or less)</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory 
+            in 5 Treatments (or less)</h2>
         </section>
         {/* --- Pain Point / Benefit --- */}
         <section className="text-center space-y-3">
@@ -217,6 +218,34 @@ const LandingPage = () => {
                     <footer className="text-sm text-primary not-italic"> – Michael, 34</footer>
                 </blockquote>
             </div>
+            {/* Warning Box - Updated styling */}
+<div 
+  role="alert" 
+  className="relative w-full max-w-2xl mx-auto my-6 text-sm rounded-lg border border-[#4d120e] bg-[#4A1212] p-3 text-white"
+>
+  <div className="flex items-start">
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 16 16" 
+      fill="currentColor" 
+      className="w-5 h-5 text-[#FF4D4D] mr-2"
+    >
+      <path 
+        fillRule="evenodd" 
+        d="M6.701 2.25c.577-1 2.02-1 2.598 0l5.196 9a1.5 1.5 0 0 1-1.299 2.25H2.804a1.5 1.5 0 0 1-1.3-2.25l5.197-9ZM8 4a.75.75 0 0 1 .75.75v3a.75.75 0 1 1-1.5 0v-3A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" 
+        clipRule="evenodd" 
+      ></path>
+    </svg>
+    <div className="pl-1"> 
+      <p className="font-semibold"> 
+        Please Note:
+      </p>
+      <p className="mt-1"> 
+        This application guides you through memory reconsolidation, a <strong>natural</strong> function of the brain. This process can risk re-traumatization. Ensure you feel prepared and proceed mindfully.
+      </p>
+    </div>
+  </div>
+</div>
          </section>
 
         {/* --- Email Capture Form Section --- */}

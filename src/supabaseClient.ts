@@ -1,30 +1,31 @@
-// src/supabaseClient.ts  <-- Path is correct based on your structure
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// --- IMPORTANT: Environment Variable Handling ---
-// Vite uses import.meta.env and requires VITE_ prefix for client-side exposure
+// --- Log the whole env object FIRST ---
+console.log("DEBUG: Full import.meta.env object:", import.meta.env);
 
-// --- THIS IS THE CORRECT WAY FOR VITE ---
+// --- Get values from env ---
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-// --- END CORRECT WAY ---
+
+// --- Log the specific values obtained ---
+console.log("DEBUG: Value obtained for VITE_SUPABASE_URL:", supabaseUrl);
+console.log("DEBUG: Value obtained for VITE_SUPABASE_ANON_KEY:", supabaseAnonKey);
+console.log("DEBUG: Type of supabaseUrl:", typeof supabaseUrl);
+console.log("DEBUG: Type of supabaseAnonKey:", typeof supabaseAnonKey);
 
 
-// --- Check if variables are set ---
-// Add console logs BEFORE the check for temporary debugging if needed
-// console.log("RUNTIME VITE_SUPABASE_URL:", supabaseUrl);
-// console.log("RUNTIME VITE_SUPABASE_ANON_KEY:", typeof supabaseAnonKey);
-
-if (!supabaseUrl) {
-  // Update error message to only mention VITE_
-  throw new Error("Supabase URL is not defined in environment. Check VITE_SUPABASE_URL variable in Vercel.");
+// --- Check if variables seem valid ---
+if (!supabaseUrl || typeof supabaseUrl !== 'string') {
+  console.error("ERROR: supabaseUrl is MISSING, not a string, or empty!");
+  throw new Error("Supabase URL is not correctly defined in environment. Check VITE_SUPABASE_URL variable.");
 }
-if (!supabaseAnonKey) {
-  // Update error message to only mention VITE_
-  throw new Error("Supabase Anon Key is not defined in environment. Check VITE_SUPABASE_ANON_KEY variable in Vercel.");
+if (!supabaseAnonKey || typeof supabaseAnonKey !== 'string') {
+  console.error("ERROR: supabaseAnonKey is MISSING, not a string, or empty!");
+  throw new Error("Supabase Anon Key is not correctly defined in environment. Check VITE_SUPABASE_ANON_KEY variable.");
 }
 
 // --- Create and Export the Client ---
-export const supabase: SupabaseClient = createClient(supabaseUrl as string, supabaseAnonKey as string);
+// Initialize ONLY ONCE
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 console.log("Supabase client initialization attempted.");

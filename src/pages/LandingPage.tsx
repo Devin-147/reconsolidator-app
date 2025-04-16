@@ -57,7 +57,7 @@ const LandingPage = () => {
     if (response.ok) {
       // Step 2: Update Supabase to grant free access
       const { data: supabaseUpdate, error: supabaseError } = await supabase
-        .from('user_payments') // Replace 'user_payments' with your table name
+        .from('users') 
         .upsert(
           { email, has_access: true, paid: false }, // Grant free access
           { onConflict: 'email' }
@@ -110,7 +110,8 @@ const LandingPage = () => {
             Reconsolidation Program
           </h1>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight pt-2" style={{ color: '#7DFDFE' }}> {/* Added H2 with style */}
-            Target a Memory to Rewrite for Good
+            Target a Memory and
+            Rewrite it for Good
           </h2>
           {/* --- END: Headline Changes --- */}
         </section>
@@ -122,12 +123,12 @@ const LandingPage = () => {
           <Button size="lg" className="mt-4 mb-4" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Try Treatment 1 Free
           </Button>
-          <h2 className="text-2xl md:text-3xl font-semibold">Heal from an Emotional Memory in Just 5 Guided Treatments</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory in Just 5 Guided Treatments (or less)</h2>
         </section>
         {/* --- Pain Point / Benefit --- */}
         <section className="text-center space-y-3">
             <p className="text-md text-muted-foreground max-w-3xl mx-auto">
-              Struggling with memories that won't let go—like a painful breakup, a lingering rejection, or a moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
+              Struggling with memories that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
             </p>
         </section>
 
@@ -135,7 +136,7 @@ const LandingPage = () => {
         <section className="space-y-8">
           <h2 className="text-2xl md:text-3xl font-semibold text-center">How the Reconsolidation Program Works</h2>
           <p className="text-center text-muted-foreground">
-            The program guides you through a simple, narrative-driven process to reprocess a specific memory to target in your mind—no distractions, just results. Here's how:
+            The program guides you through a simple, narrative-driven process to reprocess one specific memory to target in your mind—no distractions, just results. Here's how:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
             <div className="p-4 border border-border rounded-lg bg-card">
@@ -143,7 +144,7 @@ const LandingPage = () => {
                 <MdOutlineEmergencyRecording className="w-12 h-12 text-primary" />
               </div>
               <h3 className="font-semibold mb-2">1. Narrate Your Memory</h3>
-              <p className="text-sm text-muted-foreground">Decide which memory you want to reconsolidate.  Then choose a positive memory before the event and a positive memory after the event. We'll tailor the process to you.</p>
+              <p className="text-sm text-muted-foreground">Decide which eventful memory you want to target for reconsolidation.  Then choose a positive memory before the event and a positive memory after the event. We'll tailor the process to you.</p>
             </div>
             <div className="p-4 border border-border rounded-lg bg-card">
               <div className="flex justify-center mb-4">
@@ -157,7 +158,7 @@ const LandingPage = () => {
                 <GrCatalog className="w-12 h-12 text-primary" />
               </div>
               <h3 className="font-semibold mb-2">3. Follow the Guided Narrative</h3>
-              <p className="text-sm text-muted-foreground">Our AI creates a personalized script. Record it in your own voice, then play it back to guide yourself through reprocessing.</p>
+              <p className="text-sm text-muted-foreground">Our AI creates a personalized script. Record it in your own voice, then play it back to guide yourself through the controlled reprocessing.</p>
             </div>
             <div className="p-4 border border-border rounded-lg bg-card">
               <div className="flex justify-center mb-4">
@@ -196,7 +197,7 @@ const LandingPage = () => {
                        <li>No Distractions: Minimalist, narrative-driven experience.</li>
                        <li>Self-Guided Relief: Reprocess at your own pace from the comfort of home.</li>
                        <li>Progress Dashboard: See your journey tracking significant units of distress (SUDs) and completed treatments.</li>
-                       <li>Easy to follow step by step guidance through the 6 phase treatment to help you rewrite, reduce, and erase emotional triggers of the past.</li>
+                       <li>Easy to follow step by step guidance through a 6 phase treatment process to help you rewrite, reduce, and erase emotional triggers of the past.</li>
                    </ul>
                </div>
            </div>
@@ -212,7 +213,7 @@ const LandingPage = () => {
                     <footer className="text-sm text-primary not-italic"> – Sarah, 29</footer>
                 </blockquote>
                  <blockquote className="p-4 border border-border rounded-lg bg-card italic">
-                    <p className="mb-2">"I was skeptical, but the free treatment showed me real progress. My SUDs dropped from 80 to 45. The $47 was worth every penny for the full program."</p>
+                    <p className="mb-2">"I was skeptical, but the free treatment showed me real progress. My SUDs dropped from 74 to 45. The $47 was worth every penny for the full program."</p>
                     <footer className="text-sm text-primary not-italic"> – Michael, 34</footer>
                 </blockquote>
             </div>
@@ -222,7 +223,7 @@ const LandingPage = () => {
         <section id="email-form" className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
           <h2 className="text-2xl md:text-3xl font-semibold">Start Rewriting a Past Memory Today</h2>
           <p className="text-muted-foreground">
-            You don't have to keep living with the weight of a painful memory. Try Treatment 1 for Free. <br/>
+            You don't have to keep living with the weight of a past memory. Try Treatment 1 for Free. <br/>
             Enter your email to get instant access — no commitment required.
           </p>
           <form onSubmit={handleFormSubmit} className="max-w-md mx-auto space-y-4">

@@ -1,40 +1,39 @@
 {
   "compilerOptions": {
-    /* --- Path Alias --- */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-
     /* --- Vite/React Build Options --- */
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
+    "target": "ES2020",                 // Target modern JavaScript features
+    "useDefineForClassFields": true,    // Standard for modern class fields
+    "module": "ESNext",                 // Use modern ES modules
+    "lib": ["ES2020", "DOM", "DOM.Iterable"], // Include necessary libraries for browser and modern JS
+    "skipLibCheck": true,               // Skip type checking of declaration files (node_modules)
+    "esModuleInterop": true,            // Enables compatibility with CommonJS modules
+    "allowSyntheticDefaultImports": true, // Allows default imports from modules with no default export
+    "forceConsistentCasingInFileNames": true, // Enforce consistent file naming casing
 
-    /* --- Vite Client Types (Modified Path) --- */
-    "types": ["./node_modules/vite/client"], // <<<--- MODIFIED THIS LINE
+    "moduleResolution": "Node",         // <<< Use Node module resolution strategy
+    // "allowImportingTsExtensions": true, // <<< REMOVED
+    "resolveJsonModule": true,          // Allow importing JSON files
+    "isolatedModules": true,            // Treat files as separate modules (required by Babel/Vite)
+    "noEmit": true,                     // Do not output JS files (Vite handles this)
+    "jsx": "react-jsx",                 // Use the new JSX transform
 
     /* --- Linting / Strictness Options --- */
-    "strict": true,
-    "noImplicitAny": false, // Keep your overrides if needed
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "strictNullChecks": false, // Note: Redundant if strict: true
-    "noFallthroughCasesInSwitch": true,
+    "strict": true,                     // Enable all strict type-checking options (recommended)
+    // Add back specific strictness overrides below if needed, but 'strict: true' is usually best
+    // "noImplicitAny": false,
+    // "noUnusedLocals": false,
+    // "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true, // Report errors for fallthrough cases in switch statements
 
-    "esModuleInterop": true // Keep if needed
+    /* --- Path Aliases (Keep if you use them) --- */
+    "baseUrl": ".",                     // Base directory for non-relative module resolution
+    "paths": {
+      "@/*": ["./src/*"]                // Example: Allows import '@/components/...'
+    }
 
+    // "types": ["./node_modules/vite/client"] // <<< REMOVED
   },
-  "include": ["src", "api"], // Scan 'src' AND 'api' folders for TS files (if any in api)
-  // Exclude node_modules and build output
-  "exclude": ["node_modules", "dist"]
-  // Ensure "references" and "files" are NOT present
+  "include": ["src", "**/*.ts", "**/*.tsx"], // <<< Files TypeScript should check
+  "exclude": ["node_modules", "dist"]      // <<< Folders TypeScript should ignore
+  // "references" line fully removed as tsconfig.node.json doesn't exist
 }

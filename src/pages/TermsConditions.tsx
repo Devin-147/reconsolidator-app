@@ -4,31 +4,31 @@ import { Link } from 'react-router-dom'; // For internal links
 
 const TermsConditions = () => {
   const lastUpdated = "April 9, 2025"; // 
-  const contactEmail = "dev@reprogrammingmind.com"; // Your contact email
+  const contactEmail = "reprogrammingmind@gmail.com"; // Your contact email
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10 lg:p-16">
       <div className="max-w-3xl mx-auto space-y-6"> {/* Constrain width and add spacing */}
-        <h2 className="text-3xl font-bold mb-6 text-center">Reconsolidator Terms and Conditions</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center">Reconsolidation Program Terms and Conditions</h2>
         <p className="text-sm text-muted-foreground text-center">Last Updated: {lastUpdated}</p>
 
         <section className="space-y-3">
            <p>
-             Welcome to Reconsolidator, a web app designed to help you reprocess painful memories using the Reconsolidation of Traumatic Memories (RTM) protocol. By accessing or using Reconsolidator (the “Service”), you agree to be bound by these Terms and Conditions (“Terms”). If you do not agree to these Terms, please do not use the Service.
+             Welcome to the Reconsolidation program, a web app designed to help you reprocess painful memories using the Reconsolidation of Traumatic Memories (RTM) protocol. By accessing or using Reconsolidator (the “Service”), you agree to be bound by these Terms and Conditions (“Terms”). If you do not agree to these Terms, please do not use the Service.
            </p>
         </section>
 
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2">1. Acceptance of Terms</h3>
           <p>
-            By using Reconsolidator, you confirm that you are at least 18 years old and have the legal capacity to enter into this agreement. These Terms constitute a legally binding agreement between you (“User” or “you”) and Reconsolidator (“we,” “us,” or “our”). We reserve the right to update these Terms at any time, and any changes will be effective upon posting on this page with an updated “Last Updated” date. Your continued use of the Service after such changes constitutes your acceptance of the revised Terms.
+            By using the Reconsolidation program, you confirm that you are at least 18 years old and have the legal capacity to enter into this agreement. These Terms constitute a legally binding agreement between you (“User” or “you”) and Reconsolidator (“we,” “us,” or “our”). We reserve the right to update these Terms at any time, and any changes will be effective upon posting on this page with an updated “Last Updated” date. Your continued use of the Service after such changes constitutes your acceptance of the revised Terms.
           </p>
         </section>
 
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2">2. Description of Service</h3>
           <p>
-            Reconsolidator is a web-based application that guides users through a narrative-driven process to reprocess painful memories using RTM techniques. The Service includes:
+            Reconsolidation program is a web-based application that guides users through a narrative-driven process to reprocess painful memories using RTM techniques. The Service includes:
           </p>
           <ul className="list-disc list-inside ml-4 space-y-1">
             <li>A free first treatment (Treatment 1) to experience the process.</li>
@@ -89,14 +89,14 @@ const TermsConditions = () => {
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2">5. Intellectual Property</h3>
           <p>
-            All content, features, and functionality of the Service, including but not limited to text, scripts, designs, algorithms, and the Reconsolidator name and logo, are the exclusive property of Reconsolidator and its licensors, protected by copyright and other intellectual property laws. You may not copy, modify, distribute, or create derivative works from any part of the Service without our prior written consent. The Service is provided for your personal, non-commercial use only.
+            All content, features, and functionality of the Service, including but not limited to text, scripts, designs, algorithms, and the Reconsolidator name and logo, are the exclusive property of Reconsolidation program, Reprogramming Mind and its licensors, protected by copyright and other intellectual property laws. You may not copy, modify, distribute, or create derivative works from any part of the Service without our prior written consent. The Service is provided for your personal, non-commercial use only.
           </p>
         </section>
 
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2">6. Limitation of Liability & Disclaimer of Warranties</h3>
           <p>
-            To the fullest extent permitted by law, Reconsolidator, its affiliates, and its respective officers, directors, employees, and agents shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of the Service, including but not limited to: emotional distress, psychological harm, inability to achieve desired results, loss of data, or any errors or inaccuracies in the Service.
+            To the fullest extent permitted by law, Reprogramming Mind, The Reconsolidation program, its affiliates, and its respective officers, directors, employees, and agents shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of the Service, including but not limited to: emotional distress, psychological harm, inability to achieve desired results, loss of data, or any errors or inaccuracies in the Service.
           </p>
           <p>
             <strong>The Service is provided on an “as-is” and “as-available” basis, without warranties of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. We do not guarantee that the Service will meet your expectations or achieve any specific results, including reductions in distress as measured by SUDs.</strong> Your use of the Service is solely at your own risk.
@@ -106,17 +106,17 @@ const TermsConditions = () => {
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2 text-destructive">7. No Lawsuit Clause / Agreement Not to Sue</h3>
            <p className="font-semibold">
-             As a strict condition of using the Reconsolidator Service, you explicitly agree that you will not sue or initiate any form of legal action, claim, or proceeding against Reconsolidator, its owners, affiliates, officers, directors, employees, or agents for any reason whatsoever. This includes, but is not limited to, claims arising from your use of the Service, the results (or lack thereof) obtained from the Service, any emotional, psychological, physical, or other effects experienced during or after using the Service, data breaches, service interruptions, or dissatisfaction with the Service.
+             As a strict condition of using the Reconsolidation program, you explicitly agree that you will not sue or initiate any form of legal action, claim, or proceeding against the Reconsolidation program, Reprogramming Mind, or its owners, affiliates, officers, directors, employees, or agents for any reason whatsoever. This includes, but is not limited to, claims arising from your use of the Service, the results (or lack thereof) obtained from the Service, any emotional, psychological, physical, or other effects experienced during or after using the Service, data breaches, service interruptions, or dissatisfaction with the Service.
            </p>
            <p>
-             You acknowledge that Reconsolidator is a self-guided digital tool based on certain protocols but is not a substitute for professional medical or mental health therapy or advice, and results are not guaranteed. You assume all risks associated with using the Service. Your sole remedy for any dissatisfaction is to stop using the Service. This agreement not to sue is fundamental to the provision of the Service under these terms. If this clause is found unenforceable, your right to use the Service is immediately revoked.
+             You acknowledge that the Reconsolidation program is a self-guided digital tool based on certain protocols but is not a substitute for professional medical or mental health therapy or advice, and results are not guaranteed. You assume all risks associated with using the Service. Your sole remedy for any dissatisfaction is to stop using the Service. This agreement not to sue is fundamental to the provision of the Service under these terms. If this clause is found unenforceable, your right to use the Service is immediately revoked.
            </p>
         </section>
 
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2">8. Indemnification</h3>
           <p>
-            You agree to indemnify, defend, and hold harmless Reconsolidator, its affiliates, and its respective officers, directors, employees, and agents from any claims, liabilities, damages, losses, or expenses (including reasonable attorneys’ fees) arising out of or related to your use of the Service, your violation of these Terms, or your violation of any law or third-party rights.
+            You agree to indemnify, defend, and hold harmless Reprogramming Mind, Reconsolidation program, its affiliates, and its respective officers, directors, employees, and agents from any claims, liabilities, damages, losses, or expenses (including reasonable attorneys’ fees) arising out of or related to your use of the Service, your violation of these Terms, or your violation of any law or third-party rights.
           </p>
         </section>
 

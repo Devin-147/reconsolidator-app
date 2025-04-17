@@ -9,7 +9,7 @@ import { RxMix } from "react-icons/rx";
 import { GrCatalog } from "react-icons/gr";
 import { FaCalendarCheck } from "react-icons/fa6";
 import { GiProgression } from "react-icons/gi";
-import { supabase } from '../supabaseClient';
+// import { supabase } from '../supabaseClient'; // Supabase client no longer needed directly here after removing upsert
 // Import reCAPTCHA components if using it
 // import ReCAPTCHA from "react-google-recaptcha";
 // import { useRef } from 'react';
@@ -32,69 +32,76 @@ const LandingPage = () => {
   // };
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-  event.preventDefault();
-  setMessage('');
+    event.preventDefault();
+    setMessage('');
 
-  if (!agreedPrivacy || !agreedTerms) {
-    setMessage('Please agree to the Privacy Policy and Terms & Conditions.');
-    return;
-  }
+    if (!agreedPrivacy || !agreedTerms) {
+      setMessage('Please agree to the Privacy Policy and Terms & Conditions.');
+      return;
+    }
 
-  setIsLoading(true);
+    setIsLoading(true);
 
-  try {
-    // Step 1: Send email to backend to grant access
-    const response = await fetch('/api/request-access', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
+    try {
+      // Step 1: Send email to backend to grant access and handle Supabase interaction
+      const response = await fetch('/api/request-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
 
-    const data = await response.json();
+      const data = await response.json(); // Always try to parse JSON response
 
-    if (response.ok) {
-      // Step 2: Update Supabase to grant free access
-      const { data: supabaseUpdate, error: supabaseError } = await supabase
-        .from('users') 
-        .upsert(
-          { email, has_access: true, paid: false }, // Grant free access
-          { onConflict: 'email' }
-        );
+      if (response.ok) {
+        // Step 2: Frontend Supabase update block removed as it's handled by the backend API now.
+        /*
+        const { data: supabaseUpdate, error: supabaseError } = await supabase
+          .from('users')
+          .upsert(
+            { email, status: true, paid: false }, // INCORRECT DATA STRUCTURE - Removed
+            { onConflict: 'email' }
+          );
 
-      if (supabaseError) {
-        console.error('Error updating Supabase:', supabaseError.message);
-        setMessage('Error granting access. Please try again.');
+        if (supabaseError) {
+          console.error('Error updating Supabase:', supabaseError.message);
+          setMessage('Error granting access. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+        */
+
+        // Step 3: Update local state and redirect user
+        // Note: Consider relying less on localStorage for auth state if using context properly
+        try {
+          localStorage.setItem('reconsolidator_access_granted', 'true'); // Potentially redundant if AuthContext handles state
+          localStorage.setItem('reconsolidator_user_email', email);
+        } catch (e) {
+          console.error('LocalStorage Error:', e);
+          // Non-fatal error, continue execution
+        }
+
+        setUserEmailAndStatus(email, 'trial'); // Update Auth context - Use status from API if needed
+        setAgreedPrivacy(false); // Reset checkboxes
+        setAgreedTerms(false);
+        setMessage('Success! Redirecting you to start...');
+        setTimeout(() => {
+          navigate('/treatment-1'); // Redirect to Treatment 1
+        }, 1500); // Delay for user to see success message
+
+      } else {
+        // Handle errors from the backend API call
+        setMessage(data.error || 'An error occurred. Please check API response and try again.');
         setIsLoading(false);
-        return;
       }
-
-      // Step 3: Update local state and redirect user
-      try {
-        localStorage.setItem('reconsolidator_access_granted', 'true');
-        localStorage.setItem('reconsolidator_user_email', email);
-      } catch (e) {
-        console.error('LocalStorage Error:', e);
-      }
-
-      setUserEmailAndStatus(email, 'trial'); // Set trial status for free access
-      setAgreedPrivacy(false);
-      setAgreedTerms(false);
-      setMessage('Success! Redirecting you to start...');
-      setTimeout(() => {
-        navigate('/treatment-1'); // Redirect to Treatment 1
-      }, 1500);
-    } else {
-      setMessage(data.error || 'An error occurred. Please try again.');
+    } catch (error) {
+      // Handle network errors or issues parsing response JSON
+      console.error('Request Access API call failed:', error);
+      setMessage('An error occurred. Please check your connection and try again.');
       setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Request Access API call failed:', error);
-    setMessage('An error occurred. Please check your connection and try again.');
-    setIsLoading(false);
-  }
-};
+  };
 
 
   return (
@@ -110,20 +117,20 @@ const LandingPage = () => {
             Reconsolidation Program
           </h1>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight pt-2" style={{ color: '#7DFDFE' }}> {/* Added H2 with style */}
-            Target a Memory and
-            Rewrite it for Good
+            Rewriting Bad Memories <br></br>
+            for Good
           </h2>
           {/* --- END: Headline Changes --- */}
         </section>
         {/* --- Description Section --- */}
-        <section className="flex flex-col items-center justify-between h-64"> {/* Adjust height as needed */}
+        <section className="flex flex-col items-center justify-between h-60"> {/* Adjust height as needed */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto pt-0"> {/* Removed padding top */}
             Let go of the past with proven Reconsolidation techniques—start with a free treatment and experience the difference for yourself.
           </p>
           <Button size="lg" className="mt-4 mb-4" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Try Treatment 1 Free
           </Button>
-          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory 
+          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory
             in 5 Treatments (or less)</h2>
         </section>
         {/* --- Pain Point / Benefit --- */}
@@ -218,30 +225,30 @@ const LandingPage = () => {
                     <footer className="text-sm text-primary not-italic"> – Michael, 34</footer>
                 </blockquote>
             </div>
-            {/* Warning Box - Updated styling */}
-<div 
-  role="alert" 
-  className="relative w-full max-w-2xl mx-auto my-6 text-sm rounded-lg border border-[#4d120e] bg-[#4A1212] p-3 text-white"
+          {/* Warning Box - Updated styling */}
+<div
+  role="alert"
+  className="relative w-full max-w-2xl mx-auto my-6 text-sm rounded-lg border border-[#4d120e] bg-[#3a0e0e] p-3 text-white"
 >
   <div className="flex items-start">
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 16 16" 
-      fill="currentColor" 
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
       className="w-5 h-5 text-[#FF4D4D] mr-2"
     >
-      <path 
-        fillRule="evenodd" 
-        d="M6.701 2.25c.577-1 2.02-1 2.598 0l5.196 9a1.5 1.5 0 0 1-1.299 2.25H2.804a1.5 1.5 0 0 1-1.3-2.25l5.197-9ZM8 4a.75.75 0 0 1 .75.75v3a.75.75 0 1 1-1.5 0v-3A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" 
-        clipRule="evenodd" 
+      <path
+        fillRule="evenodd"
+        d="M6.701 2.25c.577-1 2.02-1 2.598 0l5.196 9a1.5 1.5 0 0 1-1.299 2.25H2.804a1.5 1.5 0 0 1-1.3-2.25l5.197-9ZM8 4a.75.75 0 0 1 .75.75v3a.75.75 0 1 1-1.5 0v-3A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+        clipRule="evenodd"
       ></path>
     </svg>
-    <div className="pl-1"> 
-      <p className="font-semibold"> 
-        Please Note:
-      </p>
-      <p className="mt-1"> 
-        This application guides you through memory reconsolidation, a <strong>natural</strong> function of the brain. This process can risk re-traumatization. Ensure you feel prepared and proceed mindfully.
+    <div className="pl-1">
+      <p className="text-xs">
+        <span className="font-semibold">Please Note: </span>
+        <span className="font-normal">
+          This application guides you through memory reconsolidation, a natural function of the brain. This can potentially risk re-traumatization depending on the memory event targeted. Proceed mindfully.
+        </span>
       </p>
     </div>
   </div>

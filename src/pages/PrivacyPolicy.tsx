@@ -19,7 +19,7 @@ const PrivacyPolicy = () => {
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2 text-accent-foreground">1. Introduction</h3>
           <p>
-            Welcome to Reprogramming Mind, the home of Reconsolidator—a web app designed to help you reprocess painful memories using the Reconsolidation of Traumatic Memories (RTM) protocol. This Privacy Policy explains how Reprogramming Mind (“we,” “us,” or “our”) collects, uses, discloses, and safeguards your information when you use the Reconsolidator web app (the “Service”) through our website, reprogrammingmind.com. By using the Service, you consent to the practices described in this policy. If you do not agree with this policy, please do not use the Service.
+            Welcome to Reprogramming Mind, the home of the Reconsolidation program—a web app designed to help you reprocess painful memories using the Reconsolidation of Traumatic Memories (RTM) protocol. This Privacy Policy explains how Reprogramming Mind (“we,” “us,” or “our”) collects, uses, discloses, and safeguards your information when you use the Reconsolidator web app (the “Service”) through our website, reprogrammingmind.com. By using the Service, you consent to the practices described in this policy. If you do not agree with this policy, please do not use the Service.
           </p>
           <p>
             We reserve the right to make changes to this Privacy Policy at any time and for any reason. We will alert you about any changes by updating the "Last Updated" date of this Privacy Policy.
@@ -132,7 +132,7 @@ const PrivacyPolicy = () => {
             If you have questions or comments about this Privacy Policy, please contact us at:
           </p>
           <p>
-            <a href="mailto:dev@reprogrammingmind.com" className="text-primary hover:underline">{contactEmail}</a>
+            <a href="mailto:reprogrammingmind@gmail.com" className="text-primary hover:underline">{contactEmail}</a>
             {/* [Your Company Name and Address, if applicable] */}
           </p>
         </section>

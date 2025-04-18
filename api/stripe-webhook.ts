@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Corrected catch block for signature verification
   try {
     const buf = await buffer(req); // Read the raw request body
-    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret as string);
   } catch (error: unknown) { // Added ': unknown'
     let errorMessage = 'Unknown webhook signature verification error.';
     if (error instanceof Error) {

@@ -236,7 +236,7 @@ ${memory2Text}`;
               <NarrationPhase 
                 isCurrentPhase={currentPhase === 4}
                 narrativeScripts={narrativeScripts}
-                narrationAudios={narrationAudios}
+                narrationAudios={narrationAudios.filter((audio): audio is string => audio !== null)}
                 onNarrationRecorded={handleNarrationRecorded}
                 onComplete={handlePhase4Complete}
                 treatmentNumber={5}

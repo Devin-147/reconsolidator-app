@@ -7,104 +7,99 @@ interface AuthContextType {
   userEmail: string | null;
   userStatus: UserStatus;
   isLoading: boolean;
-  checkAuthStatus: () => Promise<void>; // Function to trigger status check
-  setUserEmailAndStatus: (email: string | null, status: UserStatus) => void; // To set status after signup/login
+  checkAuthStatus: () => Promise<void>; // <<< NO ARGUMENT DEFINED HERE
+  // Expose setUserEmail directly if LandingPage needs it for immediate UI feedback
+  setUserEmail: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userEmail, setUserEmail] = useState<string | null>(() => {
-    // Try to get email from localStorage on initial load
-    // THIS IS INSECURE FOR AUTH DECISIONS - JUST FOR IDENTIFICATION
-    // Replace with secure session/token later
     try {
-      return localStorage.getItem('reconsolidator_user_email') || null;
+      const initialEmail = localStorage.getItem('reconsolidator_user_email') || null;
+      console.log(`AuthContext Initial Load: Email from localStorage = ${initialEmail}`);
+      return initialEmail;
     } catch { return null; }
   });
-  const [userStatus, setUserStatus] = useState<UserStatus>('loading'); // Start in loading state
+  const [userStatus, setUserStatus] = useState<UserStatus>('loading');
+  console.log(`AuthContext State Init/Update: userStatus = '${userStatus}'`);
+
   const isLoading = userStatus === 'loading';
 
-  // Function to fetch status from backend API
-  const checkAuthStatus = useCallback(async () => {
-    if (!userEmail) {
-      console.log("AuthContext: No email found, setting status to 'none'");
-      setUserStatus('none');
+  // checkAuthStatus uses the userEmail from the component's state scope
+  const checkAuthStatus = useCallback(async () => { // <<< NO ARGUMENT DEFINED HERE
+    const emailToUse = userEmail; // Use state directly
+
+    if (!emailToUse) {
+      console.log("AuthContext checkAuthStatus: No email in state, setting status to 'none'");
+      if (userStatus !== 'none') setUserStatus('none');
+      try { localStorage.removeItem('reconsolidator_user_email'); } catch {}
       return;
     }
 
-    console.log(`AuthContext: Checking status for ${userEmail}...`);
-    setUserStatus('loading'); // Set loading before fetch
-    try {
-      // Use query parameter (INSECURE - REPLACE WITH SECURE METHOD LATER)
-      const response = await fetch(`/api/get-user-status?email=${encodeURIComponent(userEmail)}`);
+    console.log(`AuthContext checkAuthStatus: Checking status for ${emailToUse} from state...`);
+    if (userStatus !== 'loading') setUserStatus('loading');
 
-      if (response.status === 404) {
-         console.log("AuthContext: User not found via API.");
-         setUserEmail(null); // Clear invalid email if needed
-         localStorage.removeItem('reconsolidator_user_email');
-         setUserStatus('none');
-         return;
-      }
+    try {
+      console.log(`AuthContext checkAuthStatus: Fetching /api/get-user-status?email=${encodeURIComponent(emailToUse)}`);
+      const response = await fetch(`/api/get-user-status?email=${encodeURIComponent(emailToUse)}`);
+      console.log(`AuthContext checkAuthStatus: Fetch response status: ${response.status}`);
 
       if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`AuthContext checkAuthStatus: API error - ${response.status} ${response.statusText}`, errorText);
+        setUserStatus('none');
+        if (response.status === 404) console.log("AuthContext checkAuthStatus: User not found (404), set status to 'none'.");
+        return;
       }
 
       const data = await response.json();
-      console.log("AuthContext: Received status from API:", data);
-      setUserStatus(data.userStatus || 'none'); // Update status based on API response
+      console.log("AuthContext checkAuthStatus: Received status from API:", data);
+      const receivedStatus = data.userStatus || 'none';
+      console.log(`AuthContext checkAuthStatus: Setting userStatus to '${receivedStatus}' for email ${emailToUse}`);
+      setUserStatus(receivedStatus);
 
     } catch (error) {
-      console.error('AuthContext: Failed to fetch auth status:', error);
-      setUserStatus('none'); // Default to 'none' on error
+      console.error('AuthContext checkAuthStatus: Failed to fetch auth status:', error);
+      console.log("AuthContext checkAuthStatus: Setting userStatus to 'none' due to error.");
+      setUserStatus('none');
     }
-  }, [userEmail]); // Dependency: userEmail
+  }, [userEmail, userStatus]); // Dependencies include userEmail (to get latest value) and userStatus (to avoid loops/set loading)
 
-  // Function to manually set email (e.g., after signup) and trigger check
-  const setUserEmailAndStatus = (email: string | null, status: UserStatus = 'loading') => {
-     setUserEmail(email);
-     if (email) {
-        try { // Also update insecure localStorage for persistence across refresh
-           localStorage.setItem('reconsolidator_user_email', email);
-        } catch {}
-     } else {
-         localStorage.removeItem('reconsolidator_user_email');
-     }
-     setUserStatus(status); // Set initial status (e.g., 'trial' or 'loading')
-     if (status === 'loading' && email) {
-        checkAuthStatus(); // Trigger fetch immediately if setting email for first time
-     }
-  }
 
-  // Fetch status on initial load if email exists
+  // useEffect: Check status on initial mount if email exists in localStorage
   useEffect(() => {
-    if(userEmail){
-        checkAuthStatus();
+    const initialEmail = localStorage.getItem('reconsolidator_user_email');
+    console.log("AuthContext Mount useEffect: initialEmail =", initialEmail);
+    if (initialEmail) {
+        // If email exists, ensure it's in state AND trigger check
+        if (initialEmail !== userEmail) {
+            setUserEmail(initialEmail); // Update state if localStorage differs
+        }
+        // Only trigger check if status isn't already set (or still loading from init)
+        // This might need adjustment based on exact desired initial load behavior
+         if (userStatus === 'loading' || userStatus === 'none') {
+             checkAuthStatus();
+         }
     } else {
-        setUserStatus('none'); // No email, no access
+      // No email found, set status directly to 'none'
+      setUserStatus('none');
     }
-  }, [checkAuthStatus, userEmail]); // Run only when checkAuthStatus or userEmail changes
+    // This effect runs once on mount, and potentially again if checkAuthStatus identity changes (it shouldn't often)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkAuthStatus]); // checkAuthStatus dependency is okay here for mount logic
 
 
-  const value = {
-    userEmail,
-    userStatus,
-    isLoading,
-    checkAuthStatus, // Expose function to allow re-checking status
-    setUserEmailAndStatus
-  };
+  const value = { userEmail, userStatus, isLoading, checkAuthStatus, setUserEmail }; // Expose setUserEmail if needed
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use the AuthContext
+// useAuth hook remains the same
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  // Add isAuthenticated derived state for convenience in ProtectedRoute
+  if (context === undefined) { throw new Error('useAuth must be used within an AuthProvider'); }
   const isAuthenticated = !context.isLoading && context.userStatus !== 'none';
   return { ...context, isAuthenticated };
 };

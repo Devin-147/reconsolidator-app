@@ -1,18 +1,13 @@
 // src/pages/LandingPage.tsx
-import React, { useState } from 'react'; // Import React
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'; // Use Auth context
 import { MdOutlineEmergencyRecording } from "react-icons/md";
 import { RxMix } from "react-icons/rx";
 import { GrCatalog } from "react-icons/gr";
-import { FaCalendarCheck } from "react-icons/fa6";
 import { GiProgression } from "react-icons/gi";
-// import { supabase } from '../supabaseClient'; // Supabase client no longer needed directly here after removing upsert
-// Import reCAPTCHA components if using it
-// import ReCAPTCHA from "react-google-recaptcha";
-// import { useRef } from 'react';
 
 const LandingPage = () => {
   const [email, setEmail] = useState('');
@@ -21,122 +16,93 @@ const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const { setUserEmailAndStatus } = useAuth();
-  // Add ref/state for reCAPTCHA if implemented
-  // const recaptchaRef = useRef<ReCAPTCHA>(null);
-  // const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  // Get checkAuthStatus (No longer needs setUserEmailAndStatus directly)
+  const { checkAuthStatus, setUserEmail } = useAuth(); // Get setUserEmail if needed indirectly
 
-  // Add reCAPTCHA onChange handler if implemented
-  // const onRecaptchaChange = (token: string | null) => {
-  //   setRecaptchaToken(token);
-  // };
-
+  // --- CORRECTED handleFormSubmit from Response #98 ---
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage('');
-
     if (!agreedPrivacy || !agreedTerms) {
-      setMessage('Please agree to the Privacy Policy and Terms & Conditions.');
-      return;
+      setMessage('Please agree to the Privacy Policy and Terms & Conditions.'); return;
     }
-
     setIsLoading(true);
 
     try {
-      // Step 1: Send email to backend to grant access and handle Supabase interaction
       const response = await fetch('/api/request-access', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json(); // Always try to parse JSON response
+      let data: { error?: string; message?: string } = {};
+      try { data = await response.json(); } catch (e) {
+        console.warn("Could not parse JSON from /api/request-access");
+        if (!response.ok) data = { error: `Request failed: ${response.status}` };
+      }
 
       if (response.ok) {
-        // Step 2: Frontend Supabase update block removed as it's handled by the backend API now.
-        /*
-        const { data: supabaseUpdate, error: supabaseError } = await supabase
-          .from('users')
-          .upsert(
-            { email, status: true, paid: false }, // INCORRECT DATA STRUCTURE - Removed
-            { onConflict: 'email' }
-          );
+        console.log(`LandingPage: API success for ${email}. Storing email, triggering auth check.`);
+        // Store email locally so AuthContext can pick it up on next load/check
+        try { localStorage.setItem('reconsolidator_user_email', email); } catch {}
+        // Manually update email in context state immediately if needed for quick UI change,
+        // but checkAuthStatus should handle the proper state setting based on API.
+        // Optional: setUserEmail(email); // Removed as checkAuthStatus should handle it
 
-        if (supabaseError) {
-          console.error('Error updating Supabase:', supabaseError.message);
-          setMessage('Error granting access. Please try again.');
-          setIsLoading(false);
-          return;
-        }
-        */
+        setAgreedPrivacy(false); setAgreedTerms(false);
+        setMessage(data.message || 'Success! Redirecting to setup...');
 
-        // Step 3: Update local state and redirect user
-        // Note: Consider relying less on localStorage for auth state if using context properly
-        try {
-          localStorage.setItem('reconsolidator_access_granted', 'true'); // Potentially redundant if AuthContext handles state
-          localStorage.setItem('reconsolidator_user_email', email);
-        } catch (e) {
-          console.error('LocalStorage Error:', e);
-          // Non-fatal error, continue execution
-        }
+        // Trigger checkAuthStatus WITHOUT arguments.
+        // It will use the email now stored in localStorage or context state.
+        await checkAuthStatus(); // <<< CORRECTED CALL (No Arguments)
 
-        setUserEmailAndStatus(email, 'trial'); // Update Auth context - Use status from API if needed
-        setAgreedPrivacy(false); // Reset checkboxes
-        setAgreedTerms(false);
-        setMessage('Success! Redirecting you to start...');
         setTimeout(() => {
-          navigate('/treatment-1'); // Redirect to Treatment 1
-        }, 1500); // Delay for user to see success message
-
+          console.log("LandingPage: Navigating to / (Memory Recording Setup)");
+          navigate('/'); // Redirect to setup page '/'
+        }, 500);
       } else {
-        // Handle errors from the backend API call
-        setMessage(data.error || 'An error occurred. Please check API response and try again.');
+        setMessage(data.error || `Request failed: ${response.status}.`);
         setIsLoading(false);
       }
     } catch (error) {
-      // Handle network errors or issues parsing response JSON
       console.error('Request Access API call failed:', error);
-      setMessage('An error occurred. Please check your connection and try again.');
+      setMessage('An error occurred. Check connection.');
       setIsLoading(false);
     }
   };
+  // --- END CORRECTED handleFormSubmit ---
 
-
+  // --- RESTORED FULL JSX from Response #64 ---
   return (
-    // Using simpler structure now, applying styles directly
     <div className="min-h-screen bg-background text-foreground p-6 md:p-6">
-       {/* Removed complex <header> */}
-      <div className="max-w-4xl mx-auto space-y-16 md:space-y-24">        {/* --- Hero Section --- */}
-        <section className="text-center space-y-4 pt-10"> {/* Reduced top padding */}
+      <div className="max-w-4xl mx-auto space-y-16 md:space-y-24">
+        {/* --- Hero Section --- */}
+        <section className="text-center space-y-4 pt-10">
           <div className="flex justify-center mb-4">
             <img src="/images/logo.png" alt="Reconsolidator Logo" width="150" height="auto" />
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-white tracking-tight"> {/* Changed text color to white */}
+          <h1 className="text-5xl md:text-6xl font-bold text-white tracking-tight">
             Reconsolidation Program
           </h1>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight pt-2" style={{ color: '#7DFDFE' }}> {/* Added H2 with style */}
-            Rewriting Bad Memories <br></br>
-            for Good
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight pt-2" style={{ color: '#7DFDFE' }}>
+            Target a Bad Memory <br></br>and Rewrite it for Good
           </h2>
-          {/* --- END: Headline Changes --- */}
         </section>
         {/* --- Description Section --- */}
-        <section className="flex flex-col items-center justify-between h-60"> {/* Adjust height as needed */}
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto pt-0"> {/* Removed padding top */}
+        <section className="flex flex-col items-center justify-between h-65">
+          <h2 className="text-2xl md:text-3xl font-semibold mb-1">Brainwash an Emotional Memory
+            in 5 Treatments (or less)</h2>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto pt-0">
             Let go of the past with proven Reconsolidation techniques—start with a free treatment and experience the difference for yourself.
           </p>
-          <Button size="lg" className="mt-4 mb-4" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
+          <Button size="lg" className="mt-12 mb-8" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Try Treatment 1 Free
           </Button>
-          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory
-            in 5 Treatments (or less)</h2>
         </section>
         {/* --- Pain Point / Benefit --- */}
-        <section className="text-center space-y-3">
+        <section className="text-center space-y-3 mb-3">
             <p className="text-md text-muted-foreground max-w-3xl mx-auto">
-              Struggling with memories that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
+              Are you struggling with memories that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
             </p>
         </section>
 
@@ -179,9 +145,8 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
-
         {/* --- Pricing / Offer --- */}
-         <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg"> {/* Removed animation */}
+         <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
             <h2 className="text-2xl md:text-3xl font-semibold">Start for Free, Then Unlock Lifetime Access for $47</h2>
             <p className="text-md text-muted-foreground">Try Treatment 1 for Free: Experience the power of memory reconsolidation at no cost.</p>
             <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because we're confident you'll see results.</p>
@@ -225,34 +190,21 @@ const LandingPage = () => {
                     <footer className="text-sm text-primary not-italic"> – Michael, 34</footer>
                 </blockquote>
             </div>
-          {/* Warning Box - Updated styling */}
-<div
-  role="alert"
-  className="relative w-full max-w-2xl mx-auto my-6 text-sm rounded-lg border border-[#4d120e] bg-[#3a0e0e] p-3 text-white"
->
-  <div className="flex items-start">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      className="w-5 h-5 text-[#FF4D4D] mr-2"
-    >
-      <path
-        fillRule="evenodd"
-        d="M6.701 2.25c.577-1 2.02-1 2.598 0l5.196 9a1.5 1.5 0 0 1-1.299 2.25H2.804a1.5 1.5 0 0 1-1.3-2.25l5.197-9ZM8 4a.75.75 0 0 1 .75.75v3a.75.75 0 1 1-1.5 0v-3A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
-        clipRule="evenodd"
-      ></path>
-    </svg>
-    <div className="pl-1">
-      <p className="text-xs">
-        <span className="font-semibold">Please Note: </span>
-        <span className="font-normal">
-          This application guides you through memory reconsolidation, a natural function of the brain. This can potentially risk re-traumatization depending on the memory event targeted. Proceed mindfully.
-        </span>
-      </p>
-    </div>
-  </div>
-</div>
+            {/* Warning Box */}
+            <div
+              role="alert"
+              className="relative w-full max-w-2xl mx-auto my-6 text-sm rounded-lg border border-[#4d120e] bg-[#3A1212] p-3 text-white"
+            >
+              <div className="flex items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-5 h-5 text-[#FF4D4D] mr-2">
+                  <path fillRule="evenodd" d="M6.701 2.25c.577-1 2.02-1 2.598 0l5.196 9a1.5 1.5 0 0 1-1.299 2.25H2.804a1.5 1.5 0 0 1-1.3-2.25l5.197-9ZM8 4a.75.75 0 0 1 .75.75v3a.75.75 0 1 1-1.5 0v-3A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" ></path>
+                </svg>
+                <div className="pl-1">
+                  <p className="font-semibold">Please Note:</p>
+                  <p className="mt-1">This application guides you through memory reconsolidation, a natural function of the brain. However, this organic process can also risk re-traumatization. Ensure you proceed mindfully.</p>
+                </div>
+              </div>
+            </div>
          </section>
 
         {/* --- Email Capture Form Section --- */}
@@ -272,42 +224,22 @@ const LandingPage = () => {
               disabled={isLoading}
               className="text-center"
             />
-
-            {/* Checkboxes */}
-             <div className="space-y-2 text-sm text-left">
+            <div className="space-y-2 text-sm text-left">
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="privacy"
-                    checked={agreedPrivacy}
-                    onChange={(e) => setAgreedPrivacy(e.target.checked)}
-                    disabled={isLoading}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary"
-                  />
+                  <input type="checkbox" id="privacy" checked={agreedPrivacy} onChange={(e) => setAgreedPrivacy(e.target.checked)} disabled={isLoading} className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary"/>
                   <label htmlFor="privacy" className="text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     I agree to the <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    checked={agreedTerms}
-                    onChange={(e) => setAgreedTerms(e.target.checked)}
-                    disabled={isLoading}
-                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary"
-                  />
+                  <input type="checkbox" id="terms" checked={agreedTerms} onChange={(e) => setAgreedTerms(e.target.checked)} disabled={isLoading} className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary"/>
                   <label htmlFor="terms" className="text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link>
                   </label>
                 </div>
              </div>
-
-             {/* Add reCAPTCHA Widget here if implemented */}
-             {/* <div className="flex justify-center my-4"> <ReCAPTCHA ... /> </div> */}
-
-            <Button type="submit" size="lg" disabled={isLoading || !agreedPrivacy || !agreedTerms /* || !recaptchaToken */}>
-              {isLoading ? 'Sending...' : 'Start Now'}
+            <Button type="submit" size="lg" disabled={isLoading || !agreedPrivacy || !agreedTerms}>
+              {isLoading ? 'Sending...' : 'Start Treatment Setup'} {/* Changed button text */}
             </Button>
           </form>
           {message && (
@@ -323,10 +255,9 @@ const LandingPage = () => {
           <Link to="/terms-conditions" className="hover:text-primary">Terms & Conditions</Link>
            <Link to="/faq" className="hover:text-primary">FAQ</Link>
         </footer>
-
-      </div> {/* End max-w-4xl */}
-    </div> // End container div
+      </div>
+    </div>
   );
+  // --- END RESTORED FULL JSX ---
 };
-
 export default LandingPage;

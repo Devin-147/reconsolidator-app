@@ -5,113 +5,108 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation, // Import useLocation to log path
+  useLocation, // Keep for logging in ProtectedRoute
 } from 'react-router-dom';
-import { Toaster } from './components/ui/sonner';
-import { ThemeProvider } from './components/theme-provider';
-import { RecordingProvider } from './contexts/RecordingContext';
-import { useAuth } from './contexts/AuthContext'; // <<<--- Only IMPORT useAuth (AuthProvider is used in main.tsx)
-import { SidebarProvider } from './components/ui/sidebar';
+import { Toaster } from './components/ui/sonner'; // For toast notifications
+import { ThemeProvider } from './components/theme-provider'; // For dark/light mode
+import { RecordingProvider } from './contexts/RecordingContext'; // For treatment data
+import { useAuth } from './contexts/AuthContext'; // For authentication state
+import { SidebarProvider } from './components/ui/sidebar'; // For sidebar state, if used globally
 
-// --- Import ALL your Page Components ---
-import LandingPage from './pages/LandingPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsConditions from './pages/TermsConditions';
-import FAQ from './pages/FAQ';
-// import VerifyAccessPage from './pages/VerifyAccessPage'; // Only if using token verification
-// import MainAppEntry from './pages/Index'; // Not used in routes below?
-import Treatment1 from './pages/Treatment1';
-import Treatment2 from './pages/Treatment2';
-import Treatment3 from './pages/Treatment3';
-import Treatment4 from './pages/Treatment4';
-import Treatment5 from './pages/Treatment5';
-import FollowUp from './pages/FollowUp';
-import PaymentPage from './pages/PaymentPage';
-import NotFound from './pages/NotFound'; // Assuming you have this
+// --- Page Component Imports ---
+import LandingPage from './pages/LandingPage';       // Public marketing/signup page
+import MemoryForm from './pages/Index';            // Memory/SUDS setup page (protected)
+import Treatment1 from './pages/Treatment1';         // Treatment 1 processing steps (protected)
+import PaymentPage from './pages/PaymentPage';       // Upgrade/Payment page (protected)
+import Treatment2 from './pages/Treatment2';         // Paid content
+import Treatment3 from './pages/Treatment3';         // Paid content
+import Treatment4 from './pages/Treatment4';         // Paid content
+import Treatment5 from './pages/Treatment5';         // Paid content
+import FollowUp from './pages/FollowUp';           // Paid content? (Assuming)
+import PrivacyPolicy from './pages/PrivacyPolicy';   // Public static page
+import TermsConditions from './pages/TermsConditions'; // Public static page
+import FAQ from './pages/FAQ';                   // Public static page
+import NotFound from './pages/NotFound';           // 404 page
 
-// --- Protected Route Component (Refined Logic) ---
+// --- Protected Route Component ---
+// Guards routes based on authentication status and required access level (trial/paid)
 const ProtectedRoute = ({ children, requiredStatus = 'trial' }: { children: JSX.Element, requiredStatus?: 'trial' | 'paid' }) => {
   const { isAuthenticated, userStatus, isLoading } = useAuth();
-  const location = useLocation(); // Get current location for logging
+  const location = useLocation();
 
-  // Log the state received by THIS specific render of ProtectedRoute
+  // Log state during check for debugging
   console.log(
     `ProtectedRoute Check: Path=${location.pathname}, isLoading=${isLoading}, userStatus=${userStatus}, derived isAuthenticated=${isAuthenticated}`
   );
 
-  // --- Explicitly handle loading state FIRST ---
-  // If the status is still being checked, show a loading indicator.
-  // This prevents premature redirects while the initial check after signup/login resolves.
+  // 1. Handle Loading State: Show indicator while auth status is being checked
   if (isLoading) {
-    console.log(`ProtectedRoute: Rendering Loading state because isLoading is true for path ${location.pathname}.`);
-    // Consider a more visually appealing loading component
+    console.log(`ProtectedRoute: Rendering Loading state for path ${location.pathname}.`);
     return <div className="flex justify-center items-center min-h-screen">Loading Access...</div>;
   }
 
-  // --- Now check authentication AFTER confirming isLoading is false ---
-  // If not authenticated (which implies userStatus is 'none' since isLoading is false), redirect to landing.
+  // 2. Handle Not Authenticated: Redirect to public landing page if not logged in at all
   if (!isAuthenticated) {
-    console.log(`ProtectedRoute: Condition !isAuthenticated is TRUE (isLoading=${isLoading}, userStatus=${userStatus}) for path ${location.pathname}. Redirecting to /`);
-    return <Navigate to="/" replace />; // Use replace to avoid adding landing page to history unnecessarily
+    console.log(`ProtectedRoute: Not Authenticated (isLoading=${isLoading}, userStatus=${userStatus}) for path ${location.pathname}. Redirecting to /welcome`);
+    return <Navigate to="/welcome" replace />; // Redirect to public landing page
   }
 
-  // --- Check for required paid status (only if the route needs 'paid') ---
+  // 3. Handle Insufficient Paid Status: Redirect to upgrade page if 'paid' is required but user isn't 'paid'
   if (requiredStatus === 'paid' && userStatus !== 'paid') {
-    console.log(`ProtectedRoute: Condition for PAID required is TRUE (required=${requiredStatus}, status=${userStatus}) for path ${location.pathname}. Redirecting to /upgrade`); // Redirect to upgrade/payment page might be better
-    // Consider redirecting to an upgrade page instead of /start if /start is not defined
-    return <Navigate to="/upgrade" replace />; // Redirect to upgrade page
+    console.log(`ProtectedRoute: Paid status required, user has '${userStatus}'. Redirecting path ${location.pathname} to /upgrade`);
+    return <Navigate to="/upgrade" replace />; // Send to payment page
   }
 
-  // --- Allow access ---
-  // If none of the above conditions caused a redirect, the user is authorized for this route.
-  console.log(`ProtectedRoute: All checks passed for path ${location.pathname}. Rendering children.`);
-  return children; // Render the actual protected component (e.g., <Treatment1 />)
+  // 4. Allow Access: If loading is done, user is authenticated, and meets status requirements
+  console.log(`ProtectedRoute: Access GRANTED for path ${location.pathname}. Rendering children.`);
+  return children; // Render the requested protected component
 };
 // --- End Protected Route Component ---
 
 
+// --- Main Application Structure ---
 function App() {
   return (
-    // ThemeProvider wraps everything (AuthProvider should wrap this in main.tsx)
+    // Ensure AuthProvider wraps ThemeProvider/App in main.tsx
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-       {/* RecordingProvider provides state for recordings */}
       <RecordingProvider>
-        {/* SidebarProvider if needed */}
-        <SidebarProvider>
-          {/* Router handles navigation */}
+        <SidebarProvider> {/* If sidebar is used across multiple routes */}
           <Router>
             <Routes>
-              {/* --- Publicly Accessible Routes --- */}
-              <Route path="/" element={<LandingPage />} />
+              {/* === Public Routes === */}
+              {/* Public Landing / Marketing Page */}
+              <Route path="/welcome" element={<LandingPage />} />
+              {/* Static Content Pages */}
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-conditions" element={<TermsConditions />} />
               <Route path="/faq" element={<FAQ />} />
-              {/* <Route path="/verify-access" element={<VerifyAccessPage />} /> */}
 
-              {/* --- Core Application Routes (Protected) --- */}
-              {/* Treatment 1 requires at least 'trial' status */}
+              {/* === Protected Routes === */}
+              {/* Root '/' is the Memory Setup page, requires at least 'trial' */}
+              <Route path="/" element={<ProtectedRoute requiredStatus='trial'><MemoryForm /></ProtectedRoute>} />
+
+              {/* Treatment 1 requires 'trial' (prerequisites checked inside component) */}
               <Route path="/treatment-1" element={<ProtectedRoute requiredStatus='trial'><Treatment1 /></ProtectedRoute>} />
 
-              {/* --- Payment Page Route --- */}
-              {/* Requires 'trial' access to reach the upgrade page */}
+              {/* Upgrade page requires 'trial' (to encourage upgrade) */}
               <Route path="/upgrade" element={<ProtectedRoute requiredStatus='trial'><PaymentPage /></ProtectedRoute>} />
 
-              {/* --- Paid Content Routes --- */}
-              {/* These routes require 'paid' status */}
+              {/* Treatments 2-5 require 'paid' status */}
               <Route path="/treatment-2" element={<ProtectedRoute requiredStatus='paid'><Treatment2 /></ProtectedRoute>} />
               <Route path="/treatment-3" element={<ProtectedRoute requiredStatus='paid'><Treatment3 /></ProtectedRoute>} />
               <Route path="/treatment-4" element={<ProtectedRoute requiredStatus='paid'><Treatment4 /></ProtectedRoute>} />
               <Route path="/treatment-5" element={<ProtectedRoute requiredStatus='paid'><Treatment5 /></ProtectedRoute>} />
+              {/* Assuming FollowUp also requires 'paid' status */}
               <Route path="/follow-up" element={<ProtectedRoute requiredStatus='paid'><FollowUp /></ProtectedRoute>} />
 
-              {/* --- Catch-all / Not Found --- */}
-              {/* Use your NotFound component for a better user experience */}
+
+              {/* === Catch-all / 404 Route === */}
+              {/* Renders the NotFound component for any unmatched paths */}
               <Route path="*" element={<NotFound />} />
-              {/* Fallback redirect if NotFound doesn't exist */}
-              {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
+              {/* Removed the CatchAll helper as NotFound component is better */}
 
             </Routes>
-            <Toaster /> {/* Renders toast notifications */}
+            <Toaster /> {/* For displaying toast notifications */}
           </Router>
         </SidebarProvider>
       </RecordingProvider>

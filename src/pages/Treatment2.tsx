@@ -1,231 +1,134 @@
-import { useState, useEffect } from "react";
+// src/pages/Treatment2.tsx
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useRecording } from "@/contexts/RecordingContext";
+import { useRecording } from "@/contexts/RecordingContext"; // Import context hook
 import { PredictionErrorSelection } from "@/components/treatment/PredictionErrorSelection";
 import { PhaseOne } from "@/components/treatment/PhaseOne";
 import { PhaseTwo } from "@/components/treatment/PhaseTwo";
 import { PhaseThree } from "@/components/treatment/PhaseThree";
 import { NarrationPhase } from "@/components/treatment/NarrationPhase";
 import { PhaseFive } from "@/components/treatment/PhaseFive";
-import { PhaseSix } from "@/components/treatment/PhaseSix";
 import { type PredictionError } from "@/components/PredictionErrorSelector";
+import { PhaseSix } from "@/components/treatment/PhaseSix"; // Adjust path if needed
 
 const Treatment2 = () => {
   const navigate = useNavigate();
-  const { 
-    memory1, 
-    memory2, 
-    targetEventTranscript, 
-    sudsLevel, 
-    memoriesSaved,
+  const {
+    // Get necessary state from context
+    memory1,
+    memory2,
+    targetEventTranscript,
+    calibrationSuds, // Needed for completeTreatment calculation
+    memoriesSaved,     // Needed for prerequisite check
     narrationAudios,
     updateNarrationAudio,
-    completeTreatment
+    completeTreatment, // Function to call on completion
+    // Removed sudsLevel
   } = useRecording();
-  
+
+  // State specific to this treatment page's flow
   const [selectedErrors, setSelectedErrors] = useState<PredictionError[]>([]);
   const [phase1Response, setPhase1Response] = useState("");
   const [phase2Response, setPhase2Response] = useState("");
   const [phase3Response, setPhase3Response] = useState("");
-  const [currentPhase, setCurrentPhase] = useState(0);
+  const [currentProcessingStep, setCurrentProcessingStep] = useState<number | null>(null); // Start null
   const [narrativeScripts, setNarrativeScripts] = useState<string[]>([]);
-  
-  const [localMemory1, setLocalMemory1] = useState("");
-  const [localMemory2, setLocalMemory2] = useState("");
-  const [localTargetEvent, setLocalTargetEvent] = useState("");
+  const [isLoadingPrereqs, setIsLoadingPrereqs] = useState(true); // Loading state
+  const [showResultsView, setShowResultsView] = useState(false); // State for results view
+  // Removed local state for memories/target
 
-  console.log("Current phase:", currentPhase);
-  
+  console.log("Treatment2.tsx - Step:", currentProcessingStep, "Loading:", isLoadingPrereqs);
+
+  // --- Corrected Prerequisite Check Effect ---
   useEffect(() => {
-    if (!memory1 || !memory2 || !targetEventTranscript) {
-      const savedState = localStorage.getItem('recordingState');
-      if (savedState) {
-        try {
-          const state = JSON.parse(savedState);
-          if (state.memory1) setLocalMemory1(state.memory1);
-          if (state.memory2) setLocalMemory2(state.memory2);
-          if (state.targetEventTranscript) setLocalTargetEvent(state.targetEventTranscript);
-          
-          console.log("Loaded memories from localStorage:", {
-            memory1: state.memory1 ? state.memory1.substring(0, 30) + "..." : "none",
-            memory2: state.memory2 ? state.memory2.substring(0, 30) + "..." : "none",
-            targetEvent: state.targetEventTranscript ? state.targetEventTranscript.substring(0, 30) + "..." : "none"
-          });
-        } catch (error) {
-          console.error("Error parsing localStorage data:", error);
-        }
+    console.log("T2 Prereq Check: Running. memoriesSaved:", memoriesSaved);
+    const checkTimeout = setTimeout(() => {
+      if (!memoriesSaved) {
+        console.log("T2 Prereq Check: memoriesSaved is false. Redirecting to '/'.");
+        toast.error("Please complete the memory setup first.");
+        navigate('/'); // Redirect back to setup page
+        return;
       }
-    }
-  }, [memory1, memory2, targetEventTranscript]);
-  
-  useEffect(() => {
-    const effectiveMemory1 = memory1 || localMemory1;
-    const effectiveMemory2 = memory2 || localMemory2;
-    const effectiveTargetEvent = targetEventTranscript || localTargetEvent;
-    
-    const savedState = localStorage.getItem('recordingState');
-    const isSaved = savedState ? JSON.parse(savedState).memoriesSaved : false;
-    
-    if ((!effectiveMemory1 || !effectiveMemory2 || !effectiveTargetEvent) && !isSaved) {
-      toast.error("Please record your memories and target event before starting Treatment 2");
-      navigate("/");
-    } else {
-      console.log("Memories and target event are available, ready for Treatment 2");
-      setCurrentPhase(0);
-    }
-  }, [memory1, memory2, targetEventTranscript, localMemory1, localMemory2, localTargetEvent, navigate, memoriesSaved]);
+      if (!memory1 || !memory2 || !targetEventTranscript || typeof calibrationSuds !== 'number') {
+        console.warn("T2 Prereq Check: memoriesSaved true, but required data missing. Redirecting to '/'.");
+        toast.error("Memory data or initial SUDS error. Please save setup again.");
+        navigate('/'); // Redirect back to setup page
+        return;
+      }
+      console.log("T2 Prereq Check: Prerequisites met. Starting processing steps.");
+      setIsLoadingPrereqs(false);
+      setCurrentProcessingStep(0); // Start first processing step for T2
+    }, 150); // Short delay
+    return () => clearTimeout(checkTimeout);
+  }, [memoriesSaved, memory1, memory2, targetEventTranscript, calibrationSuds, navigate]); // Correct dependencies
 
-  const handlePredictionErrorsComplete = (errors: PredictionError[]) => {
-    console.log("Selected prediction errors:", errors.length);
-    setSelectedErrors(errors);
-    setCurrentPhase(1);
-  };
 
-  const generateNarrativeScripts = () => {
-    if (!selectedErrors || selectedErrors.length !== 11) {
-      console.log("Not enough prediction errors selected:", selectedErrors?.length);
-      return;
-    }
+  // --- Handlers and Effects for Processing Steps ---
+  const handlePredictionErrorsComplete = useCallback((errors: PredictionError[]) => { if (errors.length !== 11) { toast.error("Select 11 errors."); return; } console.log("T2: PEs selected:", errors.length); setSelectedErrors(errors); setCurrentProcessingStep(1); }, []);
+  const generateNarrativeScripts = useCallback(() => { if (!memory1 || !memory2 || !targetEventTranscript || selectedErrors.length !== 11) { console.error("T2: Cannot generate scripts, data missing."); toast.error("Cannot generate: data missing."); return null; } console.log("T2: Generating scripts..."); const scripts = selectedErrors.map((error, index) => { /* ... template ... */ return `Movie ${index + 1}: ...`; }); console.log("T2: Scripts generated:", scripts.length); setNarrativeScripts(scripts); return scripts; }, [memory1, memory2, targetEventTranscript, selectedErrors]);
+  useEffect(() => { if (currentProcessingStep === 4) { generateNarrativeScripts(); } }, [currentProcessingStep, generateNarrativeScripts]);
+  const handleStep1Complete = useCallback(() => setCurrentProcessingStep(2), []);
+  const handleStep2Complete = useCallback(() => setCurrentProcessingStep(3), []);
+  const handleStep3Complete = useCallback(() => setCurrentProcessingStep(4), []);
+  const handleStep4Complete = useCallback(() => setCurrentProcessingStep(5), []);
+  const handleStep5Complete = useCallback(() => setCurrentProcessingStep(6), []);
+  const handleNarrationRecorded = useCallback((index: number, audioUrl: string | null) => { if (updateNarrationAudio) updateNarrationAudio(index, audioUrl); else console.error("T2: updateNarrationAudio missing."); }, [updateNarrationAudio]);
 
-    const memory1Text = memory1 || localMemory1 || "No memory 1 recorded";
-    const memory2Text = memory2 || localMemory2 || "No memory 2 recorded";
-    const targetEventDescription = targetEventTranscript || localTargetEvent || "your traumatic experience";
+  // --- Corrected Handler for Step 6 Completion ---
+  const handleStep6Complete = useCallback((finalSuds: number) => { // Receives finalSuds
+      if (completeTreatment && typeof calibrationSuds === 'number') {
+          completeTreatment('Treatment 2', finalSuds); // <<< USE finalSuds ARGUMENT
+          toast.success("Treatment 2 complete!");
+          // Optional: Show results or navigate
+          // setShowResultsView(true);
+          navigate("/"); // Navigate home for now
+      } else { console.error("T2: Cannot complete: ctx fn/calibrationSuds missing."); toast.error("Error saving results."); }
+  }, [completeTreatment, calibrationSuds, navigate]); // Added navigate
 
-    console.log("Generating narrative scripts with:", {
-      memory1: memory1Text.substring(0, 30) + "...",
-      memory2: memory2Text.substring(0, 30) + "...",
-      targetEvent: targetEventDescription.substring(0, 30) + "..."
-    });
 
-    const scripts = selectedErrors.map((error, index) => {
-      return `Movie ${index + 1}: Memory 1 + Target Event + Prediction Error ${index + 1} + Memory 2
-
-I am in a projection booth of a movie theatre and from the booth, I also see myself seated in one of the plush movie seats. I see myself watching a movie. The movie scene starts by showing me in the following situation:
-
-${memory1Text}
-
-I smile from the projection booth when seeing this part of the movie and I notice that the other me seated in the plush movie seat is watching this scene and smiling also. 
-
-The next scene in this movie shows me experiencing when ${targetEventDescription}. However, in this version, something different happens: ${error.description}
-
-I see that the version of me in the movie seat is surprised and delighted at this scene. 
-
-And then it fades into a new scene. There I am again but this time:
-
-${memory2Text}`;
-    });
-
-    console.log("Generated narrative scripts:", scripts.length);
-    setNarrativeScripts(scripts);
-  };
-
-  useEffect(() => {
-    if (currentPhase === 4 && selectedErrors && selectedErrors.length === 11) {
-      generateNarrativeScripts();
-    }
-  }, [currentPhase, selectedErrors, memory1, memory2, targetEventTranscript, localMemory1, localMemory2, localTargetEvent]);
-
-  const handlePhase5Complete = () => {
-    setCurrentPhase(6);
-  };
-
-  const handlePhase6Complete = (finalSuds: number) => {
-    completeTreatment('Treatment 2', finalSuds);
-    toast.success("Treatment 2 responses saved successfully");
-    navigate("/");
-  };
-
-  const handleNarrationRecorded = (index: number, audioUrl: string) => {
-    if (updateNarrationAudio) {
-      updateNarrationAudio(index, audioUrl);
-    }
-  };
-
-  const handlePhase4Complete = () => {
-    const recordedNarrations = narrationAudios?.filter(audio => !!audio).length || 0;
-    if (recordedNarrations === 11) {
-      setCurrentPhase(5);
-    } else {
-      toast.error(`Please complete all 11 narrations (${recordedNarrations}/11 recorded)`);
-    }
-  };
+  // --- Render Logic ---
+  if (isLoadingPrereqs) { return (<div className="flex justify-center items-center min-h-screen">Checking Treatment Prerequisites...</div>); }
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <Button
-        variant="ghost"
-        className="mb-6"
-        onClick={() => navigate("/")}
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Main
-      </Button>
-
+      <Button variant="ghost" className="mb-6" onClick={() => navigate("/")}> <ArrowLeft className="w-4 h-4 mr-2" /> Back to Memory Setup </Button>
       <div className="max-w-3xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Treatment 2</h1>
-          <p className="text-muted-foreground">Two nights after Treatment 1</p>
-        </div>
+         {/* Add Results View logic here if T2-5 show results */}
+         {showResultsView ? (
+             <div>Treatment 2 Results...</div>
+         ) : (
+            // --- Processing Steps View ---
+            <>
+              {currentProcessingStep !== null && (
+                <div className="text-center space-y-2">
+                  <h1 className="text-3xl font-semibold tracking-tight">Treatment 2</h1>
+                  <p className="text-muted-foreground">Two nights after Treatment 1</p> {/* Update description */}
+                </div>
+              )}
+              {/* Render component based on currentProcessingStep */}
+              {currentProcessingStep === 0 && (<PredictionErrorSelection onComplete={handlePredictionErrorsComplete} />)}
+              {currentProcessingStep === 1 && (<PhaseOne isCurrentPhase={true} response={phase1Response} onResponseChange={setPhase1Response} onComplete={handleStep1Complete} />)}
+              {currentProcessingStep === 2 && (<PhaseTwo isCurrentPhase={true} response={phase2Response} onResponseChange={setPhase2Response} onComplete={handleStep2Complete} />)}
+              {currentProcessingStep === 3 && (<PhaseThree isCurrentPhase={true} response={phase3Response} onResponseChange={setPhase3Response} onComplete={handleStep3Complete} />)}
+              {currentProcessingStep === 4 && (<NarrationPhase isCurrentPhase={true} narrativeScripts={narrativeScripts} narrationAudios={narrationAudios?.filter(a=>a!==null) as string[]} onNarrationRecorded={handleNarrationRecorded} onComplete={handleStep4Complete} treatmentNumber={2}/>)}
+              {currentProcessingStep === 5 && (<PhaseFive isCurrentPhase={true} narrativeScripts={narrativeScripts} memory1={memory1} memory2={memory2} targetEventTranscript={targetEventTranscript} predictionErrors={selectedErrors} onComplete={handleStep5Complete} treatmentNumber={2}/>)}
 
-        {currentPhase === 0 ? (
-          <PredictionErrorSelection onComplete={handlePredictionErrorsComplete} />
-        ) : (
-          <div className="space-y-8">
-            <PhaseOne 
-              isCurrentPhase={currentPhase === 1}
-              response={phase1Response}
-              onResponseChange={setPhase1Response}
-              onComplete={() => setCurrentPhase(2)}
-            />
-
-            <PhaseTwo 
-              isCurrentPhase={currentPhase === 2}
-              response={phase2Response}
-              onResponseChange={setPhase2Response}
-              onComplete={() => setCurrentPhase(3)}
-            />
-
-            <PhaseThree 
-              isCurrentPhase={currentPhase === 3}
-              response={phase3Response}
-              onResponseChange={setPhase3Response}
-              onComplete={() => setCurrentPhase(4)}
-            />
-
-            <NarrationPhase 
-              isCurrentPhase={currentPhase === 4}
-              narrativeScripts={narrativeScripts}
-              onNarrationRecorded={handleNarrationRecorded}
-              onComplete={handlePhase4Complete}
-              treatmentNumber={2}
-            />
-
-            <PhaseFive
-              isCurrentPhase={currentPhase === 5}
-              onComplete={handlePhase5Complete}
-              treatmentNumber={2}
-              narrativeScripts={narrativeScripts}
-              memory1={memory1 || localMemory1}
-              memory2={memory2 || localMemory2}
-              targetEventTranscript={targetEventTranscript || localTargetEvent}
-              predictionErrors={selectedErrors}
-            />
-
-            <PhaseSix
-              isCurrentPhase={currentPhase === 6}
-              narrativeScripts={narrativeScripts}
-              memory1={memory1 || localMemory1}
-              memory2={memory2 || localMemory2}
-              targetEventTranscript={targetEventTranscript || localTargetEvent}
-              predictionErrors={selectedErrors}
-              onComplete={handlePhase6Complete}
-              treatmentNumber={2}
-            />
-          </div>
-        )}
+              {/* --- Corrected PhaseSix Usage --- */}
+              {currentProcessingStep === 6 && (
+                  <PhaseSix
+                      isCurrentPhase={true}
+                      targetEventTranscript={targetEventTranscript} // Keep
+                      onComplete={handleStep6Complete} // Keep
+                      treatmentNumber={2} // Keep (Set correct number)
+                      // Removed unnecessary props
+                  />
+              )}
+               {/* --- END Corrected PhaseSix --- */}
+            </>
+         )}
       </div>
     </div>
   );

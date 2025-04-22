@@ -93,7 +93,7 @@ export const PredictionErrorSelector = ({ onComplete }: PredictionErrorSelectorP
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold tracking-tight">Select Prediction Errors</h2>
         <p className="text-muted-foreground">
-          Choose 11 alternative endings for your retelling sessions. You can select from the list or create your own.
+          Choose 11 mismatch experiences/prediction errors for your retelling sessions. You can select from the list or create your own.
         </p>
       </div>
 

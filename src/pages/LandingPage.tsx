@@ -74,7 +74,7 @@ const LandingPage = () => {
             Reconsolidation Program
           </h1>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight pt-2" style={{ color: '#7DFDFE' }}>
-            Target a Memory and Rewrite it for Good
+            Target a Bad Memory <br></br>and Rewrite it for Good
           </h2>
         </section>
         {/* --- Description Section --- */}
@@ -85,13 +85,12 @@ const LandingPage = () => {
           <Button size="lg" className="mt-4 mb-4" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Try Treatment 1 Free
           </Button>
-          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory
-            in 5 Treatments (or less)</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory <br></br>in 5 Treatments (or less)</h2>
         </section>
         {/* --- Pain Point / Benefit --- */}
         <section className="text-center space-y-3">
             <p className="text-md text-muted-foreground max-w-3xl mx-auto">
-              Struggling with memories that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
+              Are you struggling with memories that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
             </p>
         </section>
 
@@ -112,7 +111,7 @@ const LandingPage = () => {
             <div className="p-4 border border-border rounded-lg bg-card">
               <div className="flex justify-center mb-4"><RxMix className="w-12 h-12 text-primary" /></div>
               <h3 className="font-semibold mb-2">2. Choose Mismatch Experiences</h3>
-              <p className="text-sm text-muted-foreground">Select 11 novel experiences to create prediction errors for disrupting the memory's emotional hold, making it malleable for modification.</p>
+              <p className="text-sm text-muted-foreground">Select 11 novel experiences as prediction errors for disrupting the memory's emotional hold, making it malleable for modification.</p>
             </div>
              {/* Step 3 */}
             <div className="p-4 border border-border rounded-lg bg-card">
@@ -133,7 +132,7 @@ const LandingPage = () => {
          <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
             <h2 className="text-2xl md:text-3xl font-semibold">Start for Free, Then Unlock Lifetime Access for $47</h2>
             <p className="text-md text-muted-foreground">Try Treatment 1 for Free: Experience the power of memory reconsolidation at no cost.</p>
-            <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because we're confident you'll see results.</p>
+            <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because you can try it for free before buying!</p>
          </section>
 
         {/* --- Why Choose Section --- */}
@@ -182,7 +181,7 @@ const LandingPage = () => {
                 </svg>
                 <div className="pl-1">
                   <p className="font-semibold">Please Note:</p>
-                  <p className="mt-1">This application guides you through memory reconsolidation, a <strong>natural</strong> function of the brain. This process can risk re-traumatization. Ensure you feel prepared and proceed mindfully.</p>
+                  <p className="mt-1">This application guides you through memory reconsolidation, a natural function of the brain. However, this organic process can also risk re-traumatization. Ensure you proceed mindfully.</p>
                 </div>
               </div>
             </div>

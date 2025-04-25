@@ -85,7 +85,7 @@ const LandingPage = () => {
           <Button size="lg" className="mt-4 mb-4" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Try Treatment 1 Free
           </Button>
-          <h2 className="text-2xl md:text-3xl font-semibold">Brainwash an Emotional Memory <br></br>in 5 Treatments (or less)</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold text-center">Brainwash an Emotional Memory <br></br>in 5 Treatments (or less)</h2>
         </section>
         {/* --- Pain Point / Benefit --- */}
         <section className="text-center space-y-3">

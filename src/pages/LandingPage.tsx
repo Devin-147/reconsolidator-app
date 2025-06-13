@@ -1,8 +1,8 @@
 // src/pages/LandingPage.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button'; // Import Button
+import { Input } from '@/components/ui/input'; // Import Input
 import { useAuth } from '@/contexts/AuthContext';
 import { MdOutlineEmergencyRecording } from "react-icons/md";
 import { RxMix } from "react-icons/rx";
@@ -41,15 +41,15 @@ const LandingPage = () => {
 
       if (response.ok) {
         console.log(`LandingPage: API success for ${email}. Storing email, preparing redirect.`);
-        // Store email so Index page can trigger auth check
         try { localStorage.setItem('reconsolidator_user_email', email); } catch {}
         setAgreedPrivacy(false); setAgreedTerms(false);
-        setMessage(data.message || 'Success! Redirecting to setup...'); // API should send "Success: ..."
-        // Don't call checkAuthStatus here, let Index page handle it after navigation
+        setMessage(data.message || 'Success! Redirecting to setup...');
+        // Trigger checkAuthStatus AFTER storing email, before navigating
+        await checkAuthStatus();
         setTimeout(() => {
           console.log("LandingPage: Navigating to / (Memory Recording Setup)");
           navigate('/'); // Redirect to setup page '/'
-        }, 500); // Short delay for message visibility
+        }, 500);
       } else {
         setMessage(data.error || `Request failed: ${response.status}.`);
         setIsLoading(false);
@@ -63,8 +63,11 @@ const LandingPage = () => {
 
   // --- Full Landing Page JSX ---
   return (
+    // Outermost container with padding
     <div className="min-h-screen bg-background text-foreground p-6 md:p-6">
-      <div className="max-w-4xl mx-auto space-y-16 md:space-y-24">
+      {/* Centering Container */}
+      <div className="max-w-4xl mx-auto space-y-16 md:space-y-24"> {/* <<< CENTERING APPLIED */}
+
         {/* --- Hero Section --- */}
         <section className="text-center space-y-4 pt-10">
           <div className="flex justify-center mb-4">
@@ -77,9 +80,10 @@ const LandingPage = () => {
             Target a Bad Memory <br></br>and Rewrite it for Good
           </h2>
         </section>
+
         {/* --- Description Section --- */}
         <section className="flex flex-col items-center justify-between h-64">
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto pt-0">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto pt-0 text-center">
             Let go of the past with proven Reconsolidation techniques—start with a free treatment and experience the difference for yourself.
           </p>
           <Button size="lg" className="mt-4 mb-4" onClick={() => document.getElementById('email-form')?.scrollIntoView({ behavior: 'smooth' })}>
@@ -87,6 +91,7 @@ const LandingPage = () => {
           </Button>
           <h2 className="text-2xl md:text-3xl font-semibold text-center">Brainwash an Emotional Memory <br></br>in 5 Treatments (or less)</h2>
         </section>
+
         {/* --- Pain Point / Benefit --- */}
         <section className="text-center space-y-3">
             <p className="text-md text-muted-foreground max-w-3xl mx-auto">
@@ -111,13 +116,13 @@ const LandingPage = () => {
             <div className="p-4 border border-border rounded-lg bg-card">
               <div className="flex justify-center mb-4"><RxMix className="w-12 h-12 text-primary" /></div>
               <h3 className="font-semibold mb-2">2. Choose Mismatch Experiences</h3>
-              <p className="text-sm text-muted-foreground">Select 11 novel experiences as prediction errors for disrupting the memory's emotional hold, making it malleable for modification.</p>
+              <p className="text-sm text-muted-foreground">Select 11 novel experiences as prediction errors for disrupting the memory's boundary condtion and having it malleable for modification.</p>
             </div>
              {/* Step 3 */}
             <div className="p-4 border border-border rounded-lg bg-card">
               <div className="flex justify-center mb-4"><GrCatalog className="w-12 h-12 text-primary" /></div>
               <h3 className="font-semibold mb-2">3. Follow the Guided Narrative</h3>
-              <p className="text-sm text-muted-foreground">Our AI creates a personalized script. Record it in your own voice, then play it back to guide yourself through the controlled reprocessing.</p>
+              <p className="text-sm text-muted-foreground">Our AI creates a personalized script based on your target memory and resource memories. Record it in your own voice, then play it back to guide yourself through the controlled reprocessing.</p>
             </div>
              {/* Step 4 */}
             <div className="p-4 border border-border rounded-lg bg-card">
@@ -132,7 +137,7 @@ const LandingPage = () => {
          <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
             <h2 className="text-2xl md:text-3xl font-semibold">Start for Free, Then Unlock Lifetime Access for $47</h2>
             <p className="text-md text-muted-foreground">Try Treatment 1 for Free: Experience the power of memory reconsolidation at no cost.</p>
-            <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because you can try it for free before buying!</p>
+            <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because you can test drive it for free before deciding to buy!</p>
          </section>
 
         {/* --- Why Choose Section --- */}
@@ -165,7 +170,7 @@ const LandingPage = () => {
            <h2 className="text-2xl md:text-3xl font-semibold text-center">What Users Are Saying</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <blockquote className="p-4 border border-border rounded-lg bg-card italic">
-                    <p className="mb-2">"After my breakup, I couldn't stop replaying memories of the rejection. The Reconsolidation program helped me reduce my distress by 37% in just one session. I feel lighter already!"</p>
+                    <p className="mb-2">"After my breakup from over three years ago, I couldn't stop replaying some memories of the rejection. The Reconsolidation program helped stop the flashbacks and reduced my distress by 37% in just one session. I feel lighter already!"</p>
                     <footer className="text-sm text-primary not-italic"> – Sarah, 29</footer>
                 </blockquote>
                  <blockquote className="p-4 border border-border rounded-lg bg-card italic">
@@ -211,9 +216,9 @@ const LandingPage = () => {
           <Link to="/terms-conditions" className="hover:text-primary">Terms</Link>
            <Link to="/faq" className="hover:text-primary">FAQ</Link>
         </footer>
-      </div>
-    </div>
+
+      </div> {/* End Centering Container */}
+    </div> // End Page Container
   );
-  // --- END FULL JSX ---
 };
 export default LandingPage;

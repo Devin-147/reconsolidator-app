@@ -1,0 +1,31 @@
+/* src/components/Logo.module.css */
+.container {
+  display: inline-block; /* Or however you want to position it */
+  /* Add other container styles if needed */
+}
+
+.svg {
+  display: block; /* Prevents extra space below inline SVG */
+  /* transition: opacity 0.3s ease-out; */ /* Example if you wanted CSS transitions too */
+}
+
+.outerGlow {
+  fill: #00ffff; /* Example cyan color - Adjust to your logo's actual color */
+  /* Set initial opacity if not 1, though GSAP will control it */
+  opacity: 1;
+}
+
+.innerBackground {
+  fill: #0d1a26; /* Example dark blue/black color - Adjust */
+  opacity: 1;
+}
+
+.background {
+    fill: transparent; /* Or a very dark color if it's meant to be a backdrop */
+    /* fill: #05050a; */
+}
+
+/* .speaking .svg { */
+  /* Example: if you wanted a general style when speaking, not directly tied to GSAP's finer control */
+  /* box-shadow: 0 0 15px 5px rgba(0, 255, 255, 0.7); */
+/* } */

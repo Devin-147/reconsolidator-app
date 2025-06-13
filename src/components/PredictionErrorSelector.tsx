@@ -19,9 +19,9 @@ const predictionErrors: PredictionError[] = [
   { id: 5, title: "A Hidden Hero", description: "An unknown hero, previously unnoticed, saves the day and turns the tides in my favor." },
   { id: 6, title: "Alien Rescue", description: "Friendly aliens land and use advanced technology to reverse all the negative effects and provide a new start." },
   { id: 7, title: "A Kind Stranger", description: "A stranger offers help at the most unexpected moment, providing the perfect solution to everything that went wrong." },
-  { id: 8, title: "The Secret Society", description: "The person is revealed to be part of a secret society with immense resources and influence, helping them recover from the bad experience." },
+  { id: 8, title: "The Secret Society", description: "The person is revealed to be part of a secret society with immense resources and influence, helping them recover from the experience." },
   { id: 9, title: "The Great Invention", description: "A new invention or piece of technology is introduced that solves all the person's problems in an instant." },
-  { id: 10, title: "A Heroic Animal", description: "A heroic animal, such as a loyal dog or a trained bird, comes to their rescue and helps them overcome the situation." },
+  { id: 10, title: "A Heroic Animal", description: "A heroic animal, such as a loyal dog or a trained bird, comes to the rescue and helps overcome the situation." },
   { id: 11, title: "A New Power Awakens", description: "You discover a new power or skill, allowing you to overcome the difficulties they faced." },
   { id: 12, title: "The Power of Friendship", description: "A group of close friends appears to support me, making sure they get back on their feet and reclaim their happiness." },
   { id: 13, title: "A Hidden Fortune", description: "I stumble upon a hidden treasure or fortune that not only fixes the situation but transforms life for the better." },
@@ -30,12 +30,12 @@ const predictionErrors: PredictionError[] = [
   { id: 16, title: "The Justice League", description: "A group of iconic superheroes arrives on the scene, battling the antagonist and restoring peace to the situation." },
   { id: 17, title: "A Heartfelt Apology", description: "Those who wronged you realize their mistake, apologize, and work together to fix the situation, leaving everyone satisfied and settled." },
   { id: 18, title: "Writing a Bestseller", description: "After the experience, I write an incredibly popular book about overcoming adversity, which becomes a bestseller and inspires millions worldwide." },
-  { id: 19, title: "Winning an Oscar", description: "The person decides to turn their bad experience into a film or play and wins an Academy Award for Best Picture, Director, or Actor, making history in Hollywood." },
-  { id: 20, title: "Building an Empire", description: "I use the lessons learned from the bad experience to create a successful business empire, eventually becoming a self-made billionaire and philanthropist." },
+  { id: 19, title: "Winning an Oscar", description: "I decide to turn the experience into a film or play and it wins an Academy Award for Best Picture, Director, or Actor, making history in Hollywood." },
+  { id: 20, title: "Building an Empire", description: "I use the lessons learned from the bad experience to create a successful business empire, eventually becoming a self-made success story and philanthropist." },
   { id: 21, title: "Global Humanitarian", description: "I become the founder of a global charity, changing the lives of millions and earning worldwide recognition for their selfless work." },
   { id: 22, title: "Winning a Nobel Prize", description: "Through their persistence and innovation, they make a breakthrough discovery that wins them the Nobel Prize in Science, Peace, or Literature." },
   { id: 23, title: "Becoming a National Hero", description: "I am honored with a national award or recognition for their courage and resilience, becoming a role model for generations to come." },
-  { id: 24, title: "Building a Successful Startup", description: "What started as a failed venture turns into the launch of a tech startup that gets acquired for billions, and they become a Silicon Valley mogul." },
+  { id: 24, title: "Building a Successful Startup", description: "What started as a failed venture turns into the launch of a tech startup that gets acquired for billions, and I become a Silicon Valley mogul." },
   { id: 25, title: "Starting a Trend", description: "They turn their struggle into a fashion or lifestyle brand that becomes a global trend, with celebrities endorsing it and millions of followers." },
   { id: 26, title: "A Ted Talk Phenomenon", description: "I see that my personal journey inspires me to deliver a TED Talk that goes viral, landing a prestigious speaking career and global influence." },
   { id: 27, title: "Political Leader", description: "They transform their tough experience into a platform for change, eventually running for office and becoming a highly respected political figure who reforms an entire nation." },
@@ -82,7 +82,7 @@ export const PredictionErrorSelector = ({ onComplete }: PredictionErrorSelectorP
 
   const handleComplete = () => {
     if (selectedErrors.length !== 11) {
-      toast.error("Please select exactly 11 prediction errors");
+      toast.error("Please select 11 prediction errors");
       return;
     }
     onComplete(selectedErrors);

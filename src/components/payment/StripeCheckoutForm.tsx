@@ -1,124 +1,131 @@
-// src/components/payment/StripeCheckoutForm.tsx
+// FILE: src/components/payment/StripeCheckoutForm.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
   PaymentElement,
   useStripe,
   useElements
 } from "@stripe/react-stripe-js";
-import { Button } from "@/components/ui/button"; // Use your button component
-import { toast } from "sonner"; // Use your toast component
+import { Button } from "@/components/ui/button"; 
+import { toast } from "sonner"; 
+import { Loader2 } from 'lucide-react'; // For loading spinner
 
 interface StripeCheckoutFormProps {
-  onSuccessfulCheckout: (paymentIntentId: string) => void; // Callback on success
+  onSuccessfulCheckout: (paymentIntentId: string) => void;
+  // New prop to display the correct amount on the button
+  selectedTierAmountInCents: number; 
 }
 
-const StripeCheckoutForm: React.FC<StripeCheckoutFormProps> = ({ onSuccessfulCheckout }) => {
-  const stripe = useStripe(); // Hook to get the Stripe instance
-  const elements = useElements(); // Hook to get Elements instance
+const StripeCheckoutForm: React.FC<StripeCheckoutFormProps> = ({ 
+    onSuccessfulCheckout, 
+    selectedTierAmountInCents 
+}) => {
+  const stripe = useStripe(); 
+  const elements = useElements(); 
 
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Check if Stripe.js has loaded
     if (!stripe) {
+      console.warn("StripeCheckoutForm: Stripe.js has not loaded yet.");
       return;
     }
-    // You could retrieve the PaymentIntent status here if needed,
-    // but usually, the clientSecret passed to <Elements> handles setup.
+    // Optional: Retrieve the PaymentIntent status if needed, but clientSecret usually handles this
+    // const clientSecret = new URLSearchParams(window.location.search).get("payment_intent_client_secret");
+    // if (!clientSecret) { return; }
+    // stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => { /* ... */ });
   }, [stripe]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (!stripe || !elements) {
-      // Stripe.js hasn't yet loaded.
-      // Make sure to disable form submission until Stripe.js has loaded.
-      console.log("Stripe.js hasn't loaded yet.");
-      setMessage("Payment system is not ready. Please wait a moment.");
+      setMessage("Payment system is initializing. Please wait a moment.");
       return;
     }
 
     setIsLoading(true);
-    setMessage(null); // Clear previous messages
+    setMessage(null); 
 
-    // --- Trigger confirmation ---
-    // This uses the Payment Element to automatically handle card details, 3D Secure, etc.
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        // IMPORTANT: Provide the URL your users should be redirected back to
-        // AFTER they complete any necessary actions (like 3D Secure).
-        // This should typically be a page that checks the payment status.
-        // For simplicity now, we can redirect back to the upgrade page itself
-        // or maybe a dedicated /payment-success or /payment-failure route.
-        // Let's use '/upgrade' for now, but a dedicated status page is better practice.
-        return_url: `${window.location.origin}/upgrade`, // Or a dedicated success/status page
+        // return_url should point to a page that can handle payment completion status
+        // This could be the same page or a dedicated success/failure page.
+        // For this example, we'll use the current origin + /upgrade route.
+        // In a real app, you might want /payment-status?payment_intent=...
+        return_url: `${window.location.origin}/upgrade`, 
       },
-      // We prevent redirection here and handle the result directly
-      redirect: "if_required" // Important: Use "if_required" to handle redirect manually below if needed
+      redirect: "if_required" 
     });
-    // --- End confirmation ---
-
-
+    
     if (error) {
-      // This point will only be reached if there is an immediate error occurring
-      // during payment confirmation, such as invalid card details.
-      // Show error to your customer (e.g., payment details incomplete)
       console.error("Stripe confirmPayment error:", error);
-      setMessage(error.message || "An unexpected error occurred.");
-      toast.error(error.message || "Payment failed. Please check your details.");
+      const displayError = error.message || "An unexpected error occurred during payment.";
+      setMessage(displayError);
+      toast.error(displayError);
     } else if (paymentIntent) {
-       // PaymentIntent status should be checked.
-       // If `redirect: 'if_required'` was used and a redirect didn't happen,
-       // the paymentIntent status tells you the result.
        console.log("Stripe PaymentIntent status after confirmation:", paymentIntent.status);
        switch (paymentIntent.status) {
            case "succeeded":
              setMessage("Payment succeeded!");
              toast.success("Payment Successful!");
-             // Call the success callback passed from PaymentPage
              onSuccessfulCheckout(paymentIntent.id);
              break;
            case "processing":
-             setMessage("Your payment is processing.");
+             setMessage("Your payment is processing. We will update you shortly.");
              toast.info("Payment processing...");
              break;
            case "requires_payment_method":
-             setMessage("Your payment was not successful, please try another card.");
-             toast.error("Payment failed. Please try again or use a different card.");
+             setMessage("Payment failed. Please check your card details or try another card.");
+             toast.error("Payment failed. Please try again.");
              break;
            default:
-             setMessage("Something went wrong with the payment.");
-             toast.error("An unexpected payment status occurred.");
+             setMessage(`Unexpected payment status: ${paymentIntent.status}`);
+             toast.error("An unexpected issue occurred with your payment.");
              break;
        }
     } else {
-        // This case should generally not happen if using confirmPayment correctly
         setMessage("An unexpected issue occurred. Please try again.");
-        toast.error("Payment confirmation returned unexpectedly.");
+        toast.error("Payment confirmation did not return expected details.");
     }
-
-
     setIsLoading(false);
   };
 
   const paymentElementOptions = {
-    layout: "tabs" as const // Or 'accordion', 'tabs', 'auto'
+    layout: "tabs" as const 
   };
 
+  const displayAmount = (selectedTierAmountInCents / 100).toFixed(2);
+
   return (
-    <form id="payment-form" onSubmit={handleSubmit}>
+    <form id="payment-form" onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement id="payment-element" options={paymentElementOptions} />
-      <Button disabled={isLoading || !stripe || !elements} id="submit" className="w-full mt-6">
-        <span id="button-text">
-          {isLoading ? <div className="spinner" id="spinner"></div> : "Pay $47.00 Now"}
-        </span>
+      <Button 
+        disabled={isLoading || !stripe || !elements} 
+        id="submit" 
+        className="w-full py-3 text-base font-semibold"
+        size="lg" // Make button larger
+      >
+        {isLoading 
+            ? <Loader2 className="h-5 w-5 animate-spin" /> 
+            : `Pay $${displayAmount} Now`
+        }
       </Button>
-      {/* Show any error or success messages */}
-      {message && <div id="payment-message" className={`mt-4 text-sm ${message.includes("fail") || message.includes("error") ? 'text-red-500' : 'text-green-500'}`}>{message}</div>}
+      {message && (
+        <div 
+          id="payment-message" 
+          className={`mt-4 text-sm p-3 rounded-md ${
+            message.includes("fail") || message.includes("error") || message.toLowerCase().includes("unexpected")
+              ? 'bg-red-900/30 text-red-400 border border-red-700' 
+              : 'bg-green-900/30 text-green-400 border border-green-700'
+          }`}
+        >
+            {message}
+        </div>
+      )}
     </form>
   );
 }
 
-export default StripeCheckoutForm; // Ensure default export
+export default StripeCheckoutForm;

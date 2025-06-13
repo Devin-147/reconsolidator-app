@@ -1,197 +1,146 @@
-// api/stripe-webhook.ts
+// FILE: api/stripe-webhook.ts
+
 import Stripe from 'stripe';
 import { Resend } from 'resend';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { buffer } from 'micro';
-import type { VercelRequest, VercelResponse } from '@vercel/node'; // Import Vercel types
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+// --- Environment Variables ---
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const webhookSigningSecret = process.env.STRIPE_WEBHOOK_SECRET; // Renamed for clarity
+const resendApiKey = process.env.RESEND_API_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 // --- Initialize Clients ---
+let stripe: Stripe;
+let resend: Resend;
+let supabaseAdmin: SupabaseClient;
+let globalInitError: string | null = null; // For errors during top-level init
 
-// Stripe
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-if (!stripeSecret) {
-  // Log error and exit if critical env var is missing
-  console.error('FATAL ERROR: Missing STRIPE_SECRET_KEY environment variable');
-  process.exit(1); // Or handle more gracefully depending on needs
-}
-const stripe = new Stripe(stripeSecret);
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-if (!webhookSecret) {
-  console.error('FATAL ERROR: Missing STRIPE_WEBHOOK_SECRET environment variable');
-  process.exit(1);
-}
+try {
+  if (!stripeSecretKey) throw new Error('STRIPE_SECRET_KEY is missing.');
+  // Use the apiVersion your TypeScript expects
+  stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-04-30.basil' }); 
 
-// Resend
-const resendApiKey = process.env.RESEND_API_KEY;
-if (!resendApiKey) {
-  console.error('FATAL ERROR: Missing RESEND_API_KEY environment variable');
-  process.exit(1);
-}
-const resend = new Resend(resendApiKey);
+  if (!webhookSigningSecret) throw new Error('STRIPE_WEBHOOK_SECRET is missing.');
+  
+  if (!resendApiKey) throw new Error('RESEND_API_KEY is missing.');
+  resend = new Resend(resendApiKey);
 
-// Supabase (using Service Role Key for backend operations)
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use Service Key!
-
-if (!supabaseUrl) {
-  console.error('FATAL ERROR: Missing SUPABASE_URL environment variable');
-  process.exit(1);
+  if (!supabaseUrl || !supabaseServiceKey) throw new Error('SUPABASE_URL or SUPABASE_SERVICE_KEY is missing.');
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+  console.log("[API StripeWebhook] All clients initialized successfully.");
+} catch (e: any) {
+  globalInitError = `Webhook Initialization Error: ${e.message}`;
+  console.error(globalInitError, e);
+  // Note: If this block runs, the handler below will immediately return 500.
 }
-if (!supabaseServiceKey) {
-  console.error('FATAL ERROR: Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
-  process.exit(1);
-}
-// Initialize Supabase client with Service Role Key
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+// --- End Initialization ---
 
-// --- Vercel Config ---
 export const config = {
-  api: {
-    bodyParser: false, // We need the raw body for Stripe verification
-  },
+  api: { bodyParser: false, },
 };
 
-// --- Webhook Handler ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Check for global initialization errors first
+  if (globalInitError || !stripe || !resend || !supabaseAdmin) {
+    console.error("[API StripeWebhook] Handler cannot proceed due to client initialization failure:", globalInitError);
+    return res.status(500).json({ error: globalInitError || "Server critical configuration error." });
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
   }
 
-  const sig = req.headers['stripe-signature'] as string; // Assert as string
+  const sig = req.headers['stripe-signature'] as string;
   let event: Stripe.Event;
 
-  // Corrected catch block for signature verification
   try {
-    const buf = await buffer(req); // Read the raw request body
-    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret as string);
-  } catch (error: unknown) { // Added ': unknown'
-    let errorMessage = 'Unknown webhook signature verification error.';
-    if (error instanceof Error) {
-      errorMessage = error.message; // Use message safely
-    }
-    console.error(`⚠️ Webhook signature verification failed: ${errorMessage}`);
-    return res.status(400).send(`Webhook Error: ${errorMessage}`);
+    const buf = await buffer(req);
+    // webhookSigningSecret is guaranteed to be a string here if globalInitError is null
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSigningSecret!); 
+    console.log(`[API StripeWebhook] Event constructed: ${event.type}`);
+  } catch (err: any) {
+    console.error(`[API StripeWebhook] ⚠️ Webhook signature verification failed:`, err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // --- Handle the specific event type ---
   switch (event.type) {
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      console.log(`✅ PaymentIntent successful: ${paymentIntent.id}`);
+      console.log(`[API StripeWebhook] ✅ PaymentIntent Succeeded: ${paymentIntent.id}`);
 
-      // Get user email from metadata (MUST be set when creating PaymentIntent)
       const user_email = paymentIntent.metadata?.user_email;
+      const purchased_tier = paymentIntent.metadata?.purchased_tier as 'standard_lifetime' | 'premium_lifetime' | undefined;
 
-      if (!user_email) {
-        console.error(`⚠️ Missing user_email in metadata for PaymentIntent: ${paymentIntent.id}`);
-        // Respond 200 to Stripe, but log error and don't process further
-        return res.status(200).json({ received: true, error: 'Missing user email in metadata' });
+      if (!user_email || !purchased_tier) {
+        console.error(`[API StripeWebhook] ⚠️ Missing user_email or purchased_tier in metadata for PI: ${paymentIntent.id}`);
+        return res.status(200).json({ received: true, error: 'Missing required metadata (email or tier)' });
       }
 
-      // Declared variables BEFORE try block where they are used
-      let firstName = 'Valued User'; // Default first name
-      let suds_initial: number | string = 'N/A'; // Default SUDS
-      let suds_final: number | string = 'N/A';   // Default SUDS
+      // Validate purchased_tier value
+      let newAccessLevel: 'standard_lifetime' | 'premium_lifetime';
+      if (purchased_tier === 'standard_lifetime') {
+        newAccessLevel = 'standard_lifetime';
+      } else if (purchased_tier === 'premium_lifetime') {
+        newAccessLevel = 'premium_lifetime';
+      } else {
+        console.error(`[API StripeWebhook] ⚠️ Invalid purchased_tier value: ${purchased_tier} for PI: ${paymentIntent.id}`);
+        return res.status(200).json({ received: true, error: 'Invalid tier specified in payment.' });
+      }
 
-      // Corrected catch block for main processing
       try {
-        // 1. Fetch user data (including SUDS) from Supabase using the email
-        const { data: userData, error: fetchError } = await supabaseAdmin
-          .from('users') // Your users table
-          // Ensure these columns exist in your 'users' table!
-          // Remove 'firstName' from select if you didn't add the column
-          .select('id, email, firstName, has_paid, status, suds_initial, suds_final')
-          .eq('email', user_email)
-          .single(); // Expect exactly one user
-
-        if (fetchError) {
-          console.error(`Supabase fetch error for ${user_email}:`, fetchError.message);
-          // Decide if you should proceed without SUDS/firstName or stop
-        } else if (userData) {
-          console.log(`User data fetched for ${user_email}:`, userData);
-          // Assign variables fetched from DB
-          // Only assign firstName if the column exists and has a value
-          if (userData.firstName) {
-             firstName = userData.firstName;
-          }
-          suds_initial = userData.suds_initial ?? suds_initial; // Use ?? for potential 0 values
-          suds_final = userData.suds_final ?? suds_final;
-        } else {
-            console.warn(`User not found in Supabase for email ${user_email} during webhook.`);
-        }
-
-        // 2. Update user's payment status in Supabase
+        console.log(`[API StripeWebhook] Updating user ${user_email} to access_level: ${newAccessLevel}, status: 'paid', has_paid: true`);
         const { error: updateError } = await supabaseAdmin
-          .from('users') // Update the 'users' table
-          .upsert(
-            {
-              email: user_email,
-              has_paid: true,
-              status: 'paid',
-              stripe_customer_id: typeof paymentIntent.customer === 'string' ? paymentIntent.customer : null
-            },
-            { onConflict: 'email' }
-          );
+          .from('users')
+          .update({ 
+            has_paid: true, 
+            status: 'paid', 
+            access_level: newAccessLevel, 
+            stripe_customer_id: typeof paymentIntent.customer === 'string' ? paymentIntent.customer : null 
+          })
+          .eq('email', user_email);
 
         if (updateError) {
+          console.error(`[API StripeWebhook] Supabase update error for ${user_email}:`, updateError.message);
           throw new Error(`Supabase update error: ${updateError.message}`);
         }
-        console.log(`💾 Database updated for email: ${user_email}`);
+        console.log(`[API StripeWebhook] 💾 Database updated for ${user_email} with access_level: ${newAccessLevel}`);
 
-        // 3. Send Confirmation/Results Email using Resend
-        const subject = "Your Reconsolidator Treatment Results & Access";
-        // Removed firstName from the greeting
-        const bodyHtml = `<p>Thank you for purchasing access!</p>
-                          <p>Your results from the initial treatment:</p>
-                          <ul>
-                            <li>Initial SUDS: ${suds_initial}</li>
-                            <li>Final SUDS: ${suds_final}</li>
-                          </ul>
-                          <p>Your access to further treatments is now active.</p>`;
+        const { data: userData } = await supabaseAdmin.from('users').select('suds_initial').eq('email', user_email).single();
 
-        // Correctly handle Resend response and access ID
-        const { data: emailData, error: emailError } = await resend.emails.send({
-          from: 'Founder <founder@reprogrammingmind.com>', // !! USE YOUR VERIFIED SENDER !!
-          to: [user_email],
-          subject: subject,
-          html: bodyHtml,
+        const emailSubject = `Your Reconsolidation Program Access Updated!`;
+        const emailBody = `
+          <p>Thank you for your purchase!</p>
+          <p>Your access to "The Reconsolidation Program - ${newAccessLevel.replace(/_/g, ' ')}" is now active.</p>
+          ${userData?.suds_initial !== undefined ? `<p>Your initial SUDS (from setup): ${userData.suds_initial}</p>` : ''}
+          <p>You can now access your treatments.</p>
+        `;
+        await resend.emails.send({
+          from: 'Dev <dev@reprogrammingmind.com>',
+          to: [user_email], subject: emailSubject, html: emailBody,
         });
+        console.log(`[API StripeWebhook] 📧 Confirmation email sent to ${user_email} for ${newAccessLevel}.`);
 
-        if (emailError) {
-          console.error(`Resend error for ${user_email}:`, emailError);
-          // Throw error to be caught by outer catch block
-          throw new Error(`Failed to send email: ${emailError.message || 'Unknown Resend error'}`);
-        }
-
-        if (emailData) {
-           // Access ID correctly via emailData.id
-           console.log(`📧 Email sent successfully to ${user_email}. Resend ID: ${emailData.id}`);
-        }
-
-      } catch (error: unknown) { // Added ': unknown'
-        let errorMessage = 'Unknown error during payment processing.';
-        if (error instanceof Error) {
-          errorMessage = error.message; // Use message safely
-        }
-        console.error(`🚨 Processing error for ${user_email} in payment_intent.succeeded: ${errorMessage}`);
-        // Don't send 500 to Stripe, they might retry. Log it and return 200.
-        return res.status(200).json({ received: true, error: `Processing failed: ${errorMessage}` });
+      } catch (processingError: any) {
+        console.error(`[API StripeWebhook] 🚨 Error processing payment_intent.succeeded for ${user_email}:`, processingError.message);
+        return res.status(200).json({ received: true, error: `Internal processing failed: ${processingError.message}` });
       }
+      break;
 
-      break; // End case 'payment_intent.succeeded'
-
-    // --- Handle other event types ---
     case 'payment_intent.payment_failed':
       const paymentIntentFailed = event.data.object as Stripe.PaymentIntent;
-      console.log(`❌ PaymentIntent failed: ${paymentIntentFailed.id}`);
+      console.log(`[API StripeWebhook] ❌ PaymentIntent Failed: ${paymentIntentFailed.id}. Reason: ${paymentIntentFailed.last_payment_error?.message}`);
       break;
 
     default:
-      console.log(`🤷‍♀️ Unhandled event type ${event.type}`);
+      console.log(`[API StripeWebhook] 🤷‍♀️ Unhandled event type: ${event.type}`);
   }
 
-  // --- Acknowledge receipt to Stripe ---
-  console.log("Webhook handled successfully, returning 200 to Stripe.");
   res.status(200).json({ received: true });
 }

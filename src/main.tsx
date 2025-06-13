@@ -1,30 +1,25 @@
 // src/main.tsx
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';                             // <<< REMOVED .tsx
-import './index.css';
-import { ThemeProvider } from './components/theme-provider'; // <<< REMOVED .tsx (Verify path if needed)
-import { AuthProvider } from './contexts/AuthContext'; // <<< REMOVED .tsx (Verify path if needed)
+import App from './App';                             // Import App (correct)
+import './index.css';                                // Import global styles (correct)
+import { ThemeProvider } from './components/theme-provider'; // Import ThemeProvider (correct)
+import { AuthProvider } from './contexts/AuthContext';       // Import AuthProvider (correct)
+import { RecordingProvider } from './contexts/RecordingContext'; // <<< IMPORT RecordingProvider
 
-// Find the root element - ensure 'root' exists in your index.html
 const container = document.getElementById("root");
-
-// Ensure the container element is not null before creating the root
-if (!container) {
-  throw new Error("Failed to find the root element with ID 'root'. Check your index.html.");
-}
-
-// Create the root
+if (!container) { throw new Error("Root element with ID 'root' not found."); }
 const root = createRoot(container);
 
-// Render the application into the root
+// Render the application with CORRECT Provider nesting
 root.render(
   <React.StrictMode>
-    {/* AuthProvider now wraps everything */}
-    <AuthProvider>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <App />
-      </ThemeProvider>
+    <AuthProvider>       {/* AuthProvider wraps RecordingProvider */}
+      <RecordingProvider>  {/* RecordingProvider wraps ThemeProvider */}
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme"> {/* ThemeProvider wraps App */}
+          <App />        {/* App is INSIDE all providers */}
+        </ThemeProvider>
+      </RecordingProvider>
     </AuthProvider>
   </React.StrictMode>
 );

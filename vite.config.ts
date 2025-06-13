@@ -1,11 +1,13 @@
+// FILE: vite.config.ts (Simplified and Cleaned)
+
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
+import path from 'path'; // Ensure 'path' is imported for aliases
 
-// https://vitejs.dev/config/
+// Ensure 'vite-plugin-svgr' and 'vite-plugin-vercel' are NOT imported
+// if we are not using their plugins explicitly in the plugins array.
+
 export default defineConfig(({ mode }) => {
-  // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
 
   // Log the mode and env variables for debugging
@@ -15,7 +17,6 @@ export default defineConfig(({ mode }) => {
   console.log("Loaded VITE_SUPABASE_ANON_KEY:", env.VITE_SUPABASE_ANON_KEY);
   console.log("--- End logging loaded env vars ---");
 
-  // Check if the loaded values are undefined here
   if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) {
       console.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
       console.error("ERROR INSIDE vite.config.ts: VITE_SUPABASE variables are UNDEFINED after loadEnv!");
@@ -23,9 +24,20 @@ export default defineConfig(({ mode }) => {
       console.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   }
 
-  return {
-    plugins: [react()],
-    // Define section - using the 'env' object we loaded
+  return { // This is the start of the returned object
+    plugins: [
+      react(),
+      // vercel() plugin removed for now
+      // svgr() plugin removed
+    ],
+    // server: { // server.proxy removed for now; vercel dev should handle API routing.
+    //   proxy: {
+    //     '/api': {
+    //       target: `http://localhost:3000`, // Or your vercel dev port
+    //       changeOrigin: true,
+    //     }
+    //   }
+    // },
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
       'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
@@ -37,5 +49,5 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
-  };
+  }; // This is the end of the returned object
 });

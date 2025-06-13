@@ -1,6 +1,6 @@
 // src/pages/FAQ.tsx
 import React from 'react';
-import { Link } from 'react-router-dom'; // For internal links
+import { Link } from 'react-router-dom';
 
 const FAQ = () => {
   // Define a helper component for each Q&A pair for better structure
@@ -14,8 +14,11 @@ const FAQ = () => {
   );
 
   return (
+    // Outermost container with padding
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10 lg:p-16">
-      <div className="max-w-3xl mx-auto"> {/* Constrain width for readability */}
+      {/* Centering Container */}
+      <div className="max-w-3xl mx-auto space-y-6"> {/* <<< CENTERING APPLIED HERE */}
+
         <h2 className="text-3xl font-bold mb-10 text-center">
           FAQ’s on the Reconsolidation Program
         </h2>
@@ -105,7 +108,6 @@ const FAQ = () => {
         <FAQItem question="Is my data safe with Reprogramming Mind?">
           <p>
             Yes, we use encryption and aim for GDPR/CCPA compliance—your memories and personal info stay secure in the digital grid, aligned with ethical standards. Please review our{' '}
-             {/* Internal link using React Router */}
             <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link> for full details.
           </p>
           <p>
@@ -114,7 +116,6 @@ const FAQ = () => {
               https://www.frontiersin.org/journals/behavioral-neuroscience/articles/10.3389/fnbeh.2011.00024/full
             </a> (Ethical considerations in PTSD treatments)
           </p>
-          {/* Removed Website Link to privacy policy as it's now an internal link */}
         </FAQItem>
 
         <FAQItem question="What if I feel uncomfortable during treatment?">
@@ -157,11 +158,11 @@ const FAQ = () => {
           {/* Add Terms link if you create that page */}
           {/* <Link to="/terms-conditions" className="hover:text-primary">Terms and Conditions</Link> */}
           {/* Add Contact link/info if desired */}
-          {/* <a href="mailto:support@reprogrammingmind.com" className="hover:text-primary">Contact</a> */}
+          {/* <a href="mailto:reprogrammingmind@gmail.com" className="hover:text-primary">Contact</a> */}
         </div>
 
-      </div> {/* End max-w-3xl */}
-    </div> // End container div
+      </div> {/* End Centering Container */}
+    </div> // End Outermost Container
   );
 };
 

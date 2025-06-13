@@ -1,190 +1,115 @@
-// src/components/AppSidebar.tsx
+// FILE: src/components/AppSidebar.tsx
+// Corrected syntax for button className
+
+import React, { useEffect } from 'react'; // Added useEffect for logging
 import { Sidebar, SidebarContent, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { CheckCircle, FileText, Mic } from "lucide-react"; // Removed unused icons
+import { CheckCircle, FileText, Mic } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { TreatmentResult } from "@/types/recording"; // Ensure this path is correct
-import React from "react"; // Import React if using JSX implicitly
+import { type TreatmentResult } from "@/types/recording";
+import { useRecording } from '@/contexts/RecordingContext';
 
-// Interface defines props received FROM parent (e.g., Index.tsx)
-export interface AppSidebarProps { // Exporting the interface is good practice
-  visible: boolean;
-  calibrationSuds: number | undefined | null; // Allow null/undefined
-  targetEvent: Blob | undefined; // Blob for target audio/video
-  memory1: string; // Memory before the target event transcript
-  memory2: string; // Memory after the target event transcript
-  completedTreatments: TreatmentResult[]; // Array of results using corrected type
-  memoriesSaved: boolean; // Flag indicating if setup is done
-  // Setters are required by the type definition for parent component usage checks
-  setCompletedTreatments: React.Dispatch<React.SetStateAction<TreatmentResult[]>>;
-  setMemoriesSaved: React.Dispatch<React.SetStateAction<boolean>>;
-  // userEmail prop removed as it caused errors previously
-}
-
-const AppSidebar = ({
-  visible,
-  calibrationSuds,
-  targetEvent,
-  memory1,
-  memory2,
-  completedTreatments, // Received from context via parent
-  memoriesSaved,
-  // Setters received but likely not used directly IN the sidebar display logic
-  // setCompletedTreatments,
-  // setMemoriesSaved
-}: AppSidebarProps) => {
+const AppSidebar = () => {
   const navigate = useNavigate();
+  const {
+    showsSidebar,
+    calibrationSuds, 
+    audioBlobTarget,
+    memory1,
+    memory2,
+    completedTreatments,
+    memoriesSaved,
+  } = useRecording();
 
-  // --- REMOVED completeTreatment function ---
-  // This logic should reside in RecordingContext, not the display component.
-  // --- END REMOVED ---
+  // Log to see if the component re-renders when calibrationSuds changes in context
+  useEffect(() => {
+    console.log("AppSidebar: calibrationSuds from context is now:", calibrationSuds);
+  }, [calibrationSuds]);
 
-  // --- REMOVED useEffect loading from localStorage ---
-  // Context should handle loading/persistence. Sidebar just displays current state.
-  // --- END REMOVED ---
+  console.log("AppSidebar: Rendering. showsSidebar:", showsSidebar, "Initial SUDS for display:", calibrationSuds);
 
-  if (!visible) return null;
+  if (!showsSidebar) {
+     return null; 
+  }
 
-  // Sort treatments for display (already sorted in context, but safe to re-sort)
-  const sortedTreatments = [...completedTreatments].sort((a, b) => a.treatmentNumber - b.treatmentNumber);
-
-  // Determine next treatment number based on completed ones
+  const sortedTreatments = [...(completedTreatments || [])].sort((a, b) => a.treatmentNumber - b.treatmentNumber);
   const lastCompletedNumber = sortedTreatments.length > 0 ? sortedTreatments[sortedTreatments.length - 1].treatmentNumber : 0;
-  const nextTreatmentNumber = lastCompletedNumber + 1;
-
-  // Determine if prerequisites for starting Treatment 1 (or next) are met
-  // Using memoriesSaved flag set by the Activation/Setup page
-  const isReadyForProcessing = memoriesSaved; // Primary flag
+  const nextTreatmentNumber = lastCompletedNumber < 5 ? lastCompletedNumber + 1 : null;
+  const isReadyForProcessing = memoriesSaved; 
 
   return (
-    <Sidebar className="border-r bg-gray-900 text-white w-64" style={{ display: visible ? 'block' : 'none' }}> {/* Added fixed width example */}
+    <Sidebar className="fixed left-0 top-0 bottom-0 h-full w-64 border-r bg-gray-900 text-white z-30 overflow-y-auto transition-transform duration-300 ease-in-out md:translate-x-0 print:hidden">
       <SidebarHeader className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold">Treatment Progress</h2> {/* Changed Title */}
+        <h2 className="text-lg font-semibold">Treatment Progress</h2>
       </SidebarHeader>
-      <SidebarContent className="p-4"> {/* Added padding */}
-        {/* Setup Steps Section */}
+      <SidebarContent className="p-4">
         <SidebarGroup>
-          <SidebarMenu className="space-y-1"> {/* Added spacing */}
-            <SidebarMenuItem className="opacity-80 text-sm px-2 mb-1">Setup Steps</SidebarMenuItem> {/* Section Header */}
+          <SidebarMenu className="space-y-1">
+            <SidebarMenuItem className="opacity-80 text-sm px-2 mb-1 text-gray-400">Activation Setup</SidebarMenuItem>
             <SidebarMenuItem>
               <div className="flex items-center justify-between w-full px-2 py-1">
                 <span>Initial SUDS</span>
-                {/* Display calibration SUDS if available */}
-                <span>{typeof calibrationSuds === 'number' ? calibrationSuds : 'N/A'}</span>
+                <span>{typeof calibrationSuds === 'number' ? calibrationSuds : '--'}</span>
               </div>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-               <div className="flex items-center justify-between w-full px-2 py-1">
-                  <div className="flex items-center gap-2">
-                    <Mic className="w-4 h-4 flex-shrink-0" /> {/* Added shrink */}
-                    <span className="truncate">Target Event</span> {/* Added truncate */}
-                  </div>
-                  {/* Check if targetEvent blob exists */}
-                  {targetEvent ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> : <div className="w-4 h-4 flex-shrink-0"></div>}
-               </div>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-               <div className="flex items-center justify-between w-full px-2 py-1">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">Memory 1 (Positive, Before)</span> {/* Added Positive */}
-                  </div>
-                  {/* Check if memory1 transcript exists */}
-                  {memory1 ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> : <div className="w-4 h-4 flex-shrink-0"></div>}
-               </div>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                <div className="flex items-center justify-between w-full px-2 py-1">
-                    <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">Memory 2 (Positive, After)</span> {/* Added Positive */}
-                    </div>
-                    {/* Check if memory2 transcript exists */}
-                    {memory2 ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> : <div className="w-4 h-4 flex-shrink-0"></div>}
-                </div>
-             </SidebarMenuItem>
-             <SidebarMenuItem>
-                <div className={`flex items-center justify-between w-full px-2 py-1 ${memoriesSaved ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">Setup Saved</span>
-                    </div>
-                    {memoriesSaved ? <span className="text-xs">(Ready)</span> : <span className="text-xs">(Pending)</span>}
-                </div>
-             </SidebarMenuItem>
+            <SidebarMenuItem><div className="flex items-center justify-between w-full px-2 py-1"><div className="flex items-center gap-2"><Mic className="w-4 h-4 flex-shrink-0" /><span className="truncate">Target Event</span></div>{audioBlobTarget ? <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" /> : <div className="w-4 h-4 flex-shrink-0 opacity-50 border border-dashed rounded-full"></div>}</div></SidebarMenuItem>
+            <SidebarMenuItem><div className="flex items-center justify-between w-full px-2 py-1"><div className="flex items-center gap-2"><FileText className="w-4 h-4 flex-shrink-0" /><span className="truncate">Memory 1 (Positive)</span></div>{memory1 && memory1.trim().length > 0 ? <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" /> : <div className="w-4 h-4 flex-shrink-0 opacity-50 border border-dashed rounded-full"></div>}</div></SidebarMenuItem>
+            <SidebarMenuItem><div className="flex items-center justify-between w-full px-2 py-1"><div className="flex items-center gap-2"><FileText className="w-4 h-4 flex-shrink-0" /><span className="truncate">Memory 2 (Positive)</span></div>{memory2 && memory2.trim().length > 0 ? <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" /> : <div className="w-4 h-4 flex-shrink-0 opacity-50 border border-dashed rounded-full"></div>}</div></SidebarMenuItem>
+            <SidebarMenuItem><div className={`flex items-center justify-between w-full px-2 py-1 ${memoriesSaved ? 'text-green-400' : 'text-amber-400'}`}><div className="flex items-center gap-2"><CheckCircle className="w-4 h-4 flex-shrink-0" /><span className="truncate">Setup Saved</span></div>{memoriesSaved ? <span className="text-xs">(Ready for Treatments)</span> : <span className="text-xs">(Pending)</span>}</div></SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Treatment Results Section */}
-        <SidebarGroup className="mt-4"> {/* Added margin top */}
+        <SidebarGroup className="mt-4">
            <SidebarMenu className="space-y-1">
-             <SidebarMenuItem className="opacity-80 text-sm px-2 mb-1">Completed Treatments</SidebarMenuItem> {/* Section Header */}
+             <SidebarMenuItem className="opacity-80 text-sm px-2 mb-1 text-gray-400">Completed Treatments</SidebarMenuItem>
             {sortedTreatments.length === 0 && <SidebarMenuItem><div className="px-2 py-1 text-gray-500 text-sm italic">None yet</div></SidebarMenuItem>}
             {sortedTreatments.map((treatment) => {
-                // --- FIX: Check for null improvementPercentage ---
-                const improvementDisplay = treatment.improvementPercentage !== null
-                    ? `${treatment.improvementPercentage > 0 ? '+' : ''}${treatment.improvementPercentage.toFixed(0)}%`
-                    : 'N/A';
-                const improvementColor = treatment.improvementPercentage === null || treatment.improvementPercentage === 0
-                    ? 'text-gray-400' // Neutral for null or zero
-                    : treatment.improvementPercentage > 0
-                    ? 'text-green-500' // Green for improvement
-                    : 'text-red-500';   // Red for decline
-                // --- END FIX ---
-
-                // Determine if the corresponding treatment page is the next logical step
-                const isNext = treatment.treatmentNumber + 1 === nextTreatmentNumber && memoriesSaved;
-
+                const improvementDisplay = treatment.improvementPercentage !== null ? `${treatment.improvementPercentage > 0 ? '+' : ''}${treatment.improvementPercentage.toFixed(0)}%` : 'N/A';
+                const improvementColor = treatment.improvementPercentage === null || treatment.improvementPercentage === 0 ? 'text-gray-400' : treatment.improvementPercentage > 0 ? 'text-green-500' : 'text-red-500';
+                
                 return (
                   <SidebarMenuItem key={treatment.treatmentNumber}>
-                    {/* Make button navigable only if prerequisites met for next step */}
-                    <SidebarMenuButton
-                       asChild={isNext} // Only make it a navigable button if it's the path to the NEXT treatment
-                       onClick={isNext ? () => navigate(`/treatment-${treatment.treatmentNumber + 1}`) : undefined} // Navigate only if it's the next one
-                       className={`flex items-center justify-between w-full text-white ${isNext ? 'cursor-pointer hover:bg-gray-800' : 'cursor-default opacity-70'} px-2 py-1`}
-                    >
-                      <div> {/* Wrap content */}
+                    <div className={`flex items-center justify-between w-full text-white px-2 py-1`}>
+                      <div>
                         <span>Treatment {treatment.treatmentNumber}</span>
                         <span className="text-xs text-gray-400 ml-2">(Final SUDS: {treatment.finalSuds})</span>
                       </div>
                       <span className={`text-sm font-semibold ${improvementColor}`}>
                         {improvementDisplay}
                       </span>
-                    </SidebarMenuButton>
+                    </div>
                   </SidebarMenuItem>
                 );
             })}
 
-            {/* Show Button for Next Treatment if prerequisites are met */}
-            {nextTreatmentNumber <= 5 && isReadyForProcessing && (
-              <SidebarMenuItem className="mt-2"> {/* Added margin */}
-                  <SidebarMenuButton asChild onClick={() => navigate(`/treatment-${nextTreatmentNumber}`)}>
-                    <div className="flex items-center justify-center w-full text-white cursor-pointer hover:bg-green-700 bg-green-600 px-2 py-1.5 rounded">
-                      <span>Start Treatment {nextTreatmentNumber}</span>
-                      {/* Optionally add icon */}
+            {nextTreatmentNumber && nextTreatmentNumber <= 5 && (
+              <SidebarMenuItem className="mt-3">
+                  <SidebarMenuButton asChild onClick={() => navigate(`/calibrate/${nextTreatmentNumber}`)} disabled={!isReadyForProcessing}> 
+                    <div 
+                        className={`flex items-center justify-center w-full text-white text-sm font-medium rounded-md transition-colors px-2 py-2 ${isReadyForProcessing 
+                                    ? 'bg-green-600 hover:bg-green-700 cursor-pointer' 
+                                    : 'bg-gray-600 opacity-60 cursor-not-allowed'
+                                }`} // <<< SYNTAX CORRECTED HERE
+                        title={isReadyForProcessing ? `Start Calibration for Treatment ${nextTreatmentNumber}`: "Complete initial Activation Setup first"}
+                    >
+                      <span>{isReadyForProcessing ? `Start Calibration for Treatment ${nextTreatmentNumber}` : `Treatment ${nextTreatmentNumber} (Locked)`}</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
             )}
-            {/* Indicate locked state if applicable */}
-             {nextTreatmentNumber <= 5 && !isReadyForProcessing && (
-                 <SidebarMenuItem>
-                    <div className="flex items-center justify-between w-full text-gray-500 px-2 py-1 text-sm italic">
-                        <span>Treatment {nextTreatmentNumber}</span>
-                        <span>(Setup Pending)</span>
-                    </div>
-                 </SidebarMenuItem>
-            )}
-             {nextTreatmentNumber > 5 && sortedTreatments.length >= 5 && (
-                 <SidebarMenuItem>
-                    <div className="px-2 py-1 text-green-400 text-sm font-semibold">All treatments complete!</div>
+             {lastCompletedNumber >= 5 && (
+                 <SidebarMenuItem className="mt-3">
+                    <div className="px-2 py-1 text-green-400 text-sm font-semibold text-center">All 5 treatments complete!</div>
+                     <SidebarMenuButton asChild onClick={() => navigate(`/follow-up`)} className="mt-1">
+                       <div className="flex items-center justify-center w-full text-white text-sm font-medium cursor-pointer bg-blue-600 hover:bg-blue-700 px-2 py-2 rounded-md">
+                         Go to Follow-Up
+                       </div>
+                     </SidebarMenuButton>
                  </SidebarMenuItem>
              )}
-
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
 };
-
 export default AppSidebar;

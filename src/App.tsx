@@ -1,4 +1,5 @@
-// src/App.tsx
+// FILE: src/App.tsx
+
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -8,82 +9,96 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
-import { ThemeProvider } from './components/theme-provider';
-import { RecordingProvider } from './contexts/RecordingContext';
 import { useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './components/ui/sidebar';
+import AppSidebar from './components/AppSidebar';
 
-// --- Page Component Imports ---
-import LandingPage from './pages/LandingPage';       // Public marketing/signup page @ /welcome
-import ActivationPage from './pages/ActivationPage'; // <<< CHANGED IMPORT (Memory Setup page @ /)
-import Treatment1 from './pages/Treatment1';         // Treatment 1 processing steps (protected)
-import PaymentPage from './pages/PaymentPage';       // Upgrade/Payment page (protected)
-import Treatment2 from './pages/Treatment2';         // Paid content
-import Treatment3 from './pages/Treatment3';         // Paid content
-import Treatment4 from './pages/Treatment4';         // Paid content
-import Treatment5 from './pages/Treatment5';         // Paid content
-import FollowUp from './pages/FollowUp';           // Paid content? (Assuming)
-import PrivacyPolicy from './pages/PrivacyPolicy';   // Public static page
-import TermsConditions from './pages/TermsConditions'; // Public static page
-import FAQ from './pages/FAQ';                   // Public static page
-import NotFound from './pages/NotFound';           // 404 page
+// Page Component Imports
+import LandingPage from './pages/LandingPage';
+import ActivationPage from './pages/ActivationPage';
+import Treatment1 from './pages/Treatment1';
+import Treatment2 from './pages/Treatment2';
+import Treatment3 from './pages/Treatment3';
+import Treatment4 from './pages/Treatment4';
+import Treatment5 from './pages/Treatment5';
+import FollowUp from './pages/FollowUp';
+import PaymentPage from './pages/PaymentPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
+import FAQ from './pages/FAQ';
+import NotFound from './pages/NotFound';
+import LogoTestLab from './pages/LogoTestLab'; // Import the new test page
 
-// --- Protected Route Component (Remains the same as Response #96) ---
+// --- Protected Route Component ---
 const ProtectedRoute = ({ children, requiredStatus = 'trial' }: { children: JSX.Element, requiredStatus?: 'trial' | 'paid' }) => {
   const { isAuthenticated, userStatus, isLoading } = useAuth();
   const location = useLocation();
-  console.log( `ProtectedRoute Check: Path=${location.pathname}, isLoading=${isLoading}, userStatus=${userStatus}, derived isAuthenticated=${isAuthenticated}` );
-  if (isLoading) { console.log(`ProtectedRoute: Loading state for ${location.pathname}.`); return <div className="flex justify-center items-center min-h-screen">Loading Access...</div>; }
-  if (!isAuthenticated) { console.log(`ProtectedRoute: Not Authenticated for ${location.pathname}. Redirecting to /welcome`); return <Navigate to="/welcome" replace />; }
-  if (requiredStatus === 'paid' && userStatus !== 'paid') { console.log(`ProtectedRoute: Paid required, user has '${userStatus}'. Redirecting ${location.pathname} to /upgrade`); return <Navigate to="/upgrade" replace />; }
-  console.log(`ProtectedRoute: Access GRANTED for ${location.pathname}.`); return children;
+
+  const BYPASS_PAYMENT_FOR_TESTING = true; 
+  
+  console.log(
+    `ProtectedRoute Check: Path=${location.pathname}, isLoading=${isLoading}, userStatus=${userStatus}, derived isAuthenticated=${isAuthenticated}, PaymentBypassActive=${BYPASS_PAYMENT_FOR_TESTING}`
+  );
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading Access...</div>;
+  }
+
+  if (!isAuthenticated) {
+    console.log("ProtectedRoute: Not authenticated, redirecting to /welcome");
+    return <Navigate to="/welcome" replace />;
+  }
+
+  if (BYPASS_PAYMENT_FOR_TESTING && requiredStatus === 'paid') {
+    console.warn(`ProtectedRoute: PAYMENT CHECK BYPASSED for route requiring 'paid' status (Path: ${location.pathname}). User status is '${userStatus}'. Accessing as if paid.`);
+    return children; 
+  }
+
+  if (requiredStatus === 'paid' && userStatus !== 'paid') {
+    console.log(`ProtectedRoute: Paid status required for ${location.pathname}, user has '${userStatus}'. Redirecting to /upgrade.`);
+    return <Navigate to="/upgrade" replace />;
+  }
+  return children;
 };
 // --- End Protected Route Component ---
 
-
-// --- Main Application Structure ---
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <RecordingProvider>
-        <SidebarProvider>
-          <Router>
-            <Routes>
-              {/* === Public Routes === */}
-              <Route path="/welcome" element={<LandingPage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-conditions" element={<TermsConditions />} />
-              <Route path="/faq" element={<FAQ />} />
+    <SidebarProvider> 
+      <Router>
+        <div className="relative min-h-screen w-full bg-background text-foreground flex"> 
+          <AppSidebar /> 
+          <main className="flex-1 pl-0 md:pl-64 overflow-y-auto"> 
+            <div className="max-w-3xl mx-auto p-4 md:p-8"> 
+              <Routes>
+                <Route path="/welcome" element={<LandingPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-conditions" element={<TermsConditions />} />
+                <Route path="/faq" element={<FAQ />} />
 
-              {/* === Protected Routes === */}
-              {/* Root '/' is the Activation/Setup page */}
-              <Route path="/" element={<ProtectedRoute requiredStatus='trial'><ActivationPage /></ProtectedRoute>} /> {/* <<< CHANGED COMPONENT */}
+                {/* Test Route for Logo Animation */}
+                <Route path="/logo-test-lab" element={<LogoTestLab />} />
 
-              {/* Treatment 1 Processing Phases */}
-              <Route path="/treatment-1" element={<ProtectedRoute requiredStatus='trial'><Treatment1 /></ProtectedRoute>} />
+                <Route path="/calibrate/:treatmentNumber" element={ <ProtectedRoute requiredStatus='trial'><ActivationPage /></ProtectedRoute> } />
+                <Route path="/" element={ <ProtectedRoute requiredStatus='trial'><Navigate to="/calibrate/1" replace /></ProtectedRoute> } />
 
-              {/* Upgrade/Payment Page */}
-              <Route path="/upgrade" element={<ProtectedRoute requiredStatus='trial'><PaymentPage /></ProtectedRoute>} />
+                <Route path="/treatment-1" element={<ProtectedRoute requiredStatus='trial'><Treatment1 /></ProtectedRoute>} />
+                <Route path="/treatment-2" element={<ProtectedRoute requiredStatus='paid'><Treatment2 /></ProtectedRoute>} />
+                <Route path="/treatment-3" element={<ProtectedRoute requiredStatus='paid'><Treatment3 /></ProtectedRoute>} />
+                <Route path="/treatment-4" element={<ProtectedRoute requiredStatus='paid'><Treatment4 /></ProtectedRoute>} />
+                <Route path="/treatment-5" element={<ProtectedRoute requiredStatus='paid'><Treatment5 /></ProtectedRoute>} />
+                
+                <Route path="/upgrade" element={<ProtectedRoute requiredStatus='trial'><PaymentPage /></ProtectedRoute>} />
+                <Route path="/follow-up" element={<ProtectedRoute requiredStatus='paid'><FollowUp /></ProtectedRoute>} />
 
-              {/* Paid Content */}
-              <Route path="/treatment-2" element={<ProtectedRoute requiredStatus='paid'><Treatment2 /></ProtectedRoute>} />
-              <Route path="/treatment-3" element={<ProtectedRoute requiredStatus='paid'><Treatment3 /></ProtectedRoute>} />
-              <Route path="/treatment-4" element={<ProtectedRoute requiredStatus='paid'><Treatment4 /></ProtectedRoute>} />
-              <Route path="/treatment-5" element={<ProtectedRoute requiredStatus='paid'><Treatment5 /></ProtectedRoute>} />
-              <Route path="/follow-up" element={<ProtectedRoute requiredStatus='paid'><FollowUp /></ProtectedRoute>} />
-
-              {/* === Catch-all / 404 Route === */}
-              <Route path="*" element={<NotFound />} />
-
-            </Routes>
-            <Toaster />
-          </Router>
-        </SidebarProvider>
-      </RecordingProvider>
-    </ThemeProvider>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div> 
+          </main>
+        </div>
+        <Toaster />
+      </Router>
+    </SidebarProvider>
   );
 }
-
-// Removed CatchAll helper as NotFound is used directly
-
 export default App;

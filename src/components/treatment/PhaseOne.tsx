@@ -31,7 +31,7 @@ export const PhaseOne = ({
       <Textarea
         value={response}
         onChange={(e) => onResponseChange(e.target.value)}
-        placeholder="Describe what you see on the movie screen..."
+        placeholder="Describe what you see on the imagined movie screen..."
         className="min-h-[150px]"
         disabled={!isCurrentPhase}
       />

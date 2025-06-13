@@ -1,21 +1,20 @@
 // src/pages/PrivacyPolicy.tsx
 import React from 'react';
-import { Link } from 'react-router-dom'; // Optional: if you need internal links
+import { Link } from 'react-router-dom'; // Keep for internal links like Home, Terms
 
 const PrivacyPolicy = () => {
-  const lastUpdated = "April 9, 2025"; // CHANGE THIS DATE
+  const lastUpdated = "April 27, 2025"; // <<< UPDATE THIS DATE
   const contactEmail = "dev@reprogrammingmind.com"; // Your contact email
 
   return (
-    // Use Tailwind classes for container, background, text, padding
+    // Outermost container with padding
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10 lg:p-16">
-      {/* Use Tailwind for max-width, centering, and spacing between sections */}
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Use Tailwind for headings, margins, centering */}
+      {/* Centering Container */}
+      <div className="max-w-3xl mx-auto space-y-6"> {/* <<< CENTERING APPLIED HERE */}
+
         <h2 className="text-3xl font-bold mb-6 text-center text-primary">Reprogramming Mind Privacy Policy</h2>
         <p className="text-sm text-muted-foreground text-center">Last Updated: {lastUpdated}</p>
 
-        {/* Use standard HTML tags and Tailwind for styling */}
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2 text-accent-foreground">1. Introduction</h3>
           <p>
@@ -31,7 +30,6 @@ const PrivacyPolicy = () => {
           <p>
             We may collect information about you in a variety of ways. The information we may collect via the App includes:
           </p>
-          {/* Use Tailwind list styles */}
           <ul className="list-disc list-inside ml-4 space-y-1 text-foreground/90">
             <li>
               <strong>Personal Data:</strong> Personally identifiable information, such as your email address, which you voluntarily give to us when registering for the App or choosing to participate in various activities related to the App.
@@ -87,7 +85,7 @@ const PrivacyPolicy = () => {
               <strong>With Your Consent:</strong> We may disclose your personal information for any other purpose with your consent.
             </li>
           </ul>
-            <p className="mt-2 font-semibold"> {/* Add margin and emphasis */}
+            <p className="mt-2 font-semibold">
                 Regarding User Content (Memories/Transcripts): We treat your User Content with the highest level of confidentiality. It is stored securely in our database (Supabase). Access to raw User Content by our personnel is strictly limited and controlled, typically only for essential maintenance, debugging, or if legally required. We do not analyze the content of your memories for purposes other than providing the App's functionality unless specifically stated (e.g., for anonymized research, if you explicitly opt-in).
             </p>
         </section>
@@ -101,9 +99,14 @@ const PrivacyPolicy = () => {
 
         <section className="space-y-3">
           <h3 className="text-xl font-semibold mb-2 text-accent-foreground">6. Data Retention</h3>
+           {/* --- ADDED 30-DAY POLICY INFO --- */}
            <p>
-            We will retain your personal information and User Content only for as long as is necessary for the purposes set out in this Privacy Policy, or as required by law. You may request deletion of your account and associated data by contacting us.
+             We will retain your core account information (email address, payment status) as necessary to provide you with the Service. However, sensitive User Content associated with specific treatment sessions (including audio recordings, transcripts, SUDS scores, and generated narratives) will be automatically purged from our systems **30 days after the completion date of the respective treatment session**. This ensures your detailed personal treatment data is not stored indefinitely.
            </p>
+           <p>
+             You also have the option to manually delete data associated with a completed treatment session directly within the application interface after completing the final step of that treatment. You may request deletion of your entire account and all associated data at any time by contacting us.
+           </p>
+           {/* --- END ADDITION --- */}
         </section>
 
         <section className="space-y-3">
@@ -120,32 +123,25 @@ const PrivacyPolicy = () => {
            </p>
         </section>
 
-        {/* --- ADD SECTION 9 (Cookies) from your original if needed --- */}
-
-        {/* --- ADD SECTION 10 (Third-Party Links) from your original if needed --- */}
-
-        {/* --- ADD SECTION 11 (International Users) from your original if needed --- */}
-
         <section className="space-y-3">
-          <h3 className="text-xl font-semibold mb-2 text-accent-foreground">Contact Us</h3> {/* Renumbered */}
+          {/* Renumbered section */}
+          <h3 className="text-xl font-semibold mb-2 text-accent-foreground">9. Contact Us</h3>
           <p>
             If you have questions or comments about this Privacy Policy, please contact us at:
           </p>
           <p>
-            <a href="mailto:reprogrammingmind@gmail.com" className="text-primary hover:underline">{contactEmail}</a>
-            {/* [Your Company Name and Address, if applicable] */}
+            <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">{contactEmail}</a>
           </p>
         </section>
 
-        {/* Optional Footer Links within the page */}
         <div className="mt-10 pt-6 border-t border-border text-center text-sm text-muted-foreground space-x-4">
-            <Link to="/" className="hover:text-primary">Home</Link>
+            <Link to="/" className="hover:text-primary">Home</Link> {/* Assumes '/' is setup page */}
             <Link to="/terms-conditions" className="hover:text-primary">Terms & Conditions</Link>
             <Link to="/faq" className="hover:text-primary">FAQ</Link>
         </div>
 
-      </div> {/* End max-w-3xl */}
-    </div> // End container div
+      </div> {/* End Centering Container */}
+    </div> // End Outermost Container
   );
 };
 

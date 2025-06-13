@@ -1,150 +1,283 @@
-// src/pages/ActivationPage.tsx (Formerly Index.tsx)
-import React, { useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+// FILE: src/pages/ActivationPage.tsx
+// (This is the version that correctly updates context's calibrationSuds)
+
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Info, ArrowRight, Mic, Square, AlertCircle } from "lucide-react";
 import SUDSScale from "../components/SUDSScale";
-import AppSidebar from "../components/AppSidebar";
 import { useRecording } from "@/contexts/RecordingContext";
-import { type TreatmentResult } from "@/types/recording";
 import { MemoryControls } from "../components/MemoryControls";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input"; // This was missing in one of my earlier "full" versions
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { SetStateAction } from 'react';
 import { useTargetRecording } from "@/hooks/useTargetRecording";
 import { formatTime } from "@/utils/formatTime";
 
 const ActivationPage = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const {
-        memory1, memory2, targetEventTranscript, isRecording1, isRecording2,
-        calibrationSuds, setCalibrationSuds, showsSidebar, setShowsSidebar,
-        setMemoriesSaved, completedTreatments, setCompletedTreatments, memoriesSaved,
-        audioBlobTarget, setTargetEventTranscript, setMemory1, setMemory2,
-    } = useRecording();
-    const { userEmail, checkAuthStatus, userStatus, isLoading } = useAuth();
-    const {
-        isRecordingTarget, recordingTime, liveTranscript, startTargetRecording,
-        stopTargetRecording, error: recordingError, isSupported
-    } = useTargetRecording();
+  const navigate = useNavigate();
+  const { treatmentNumber: treatmentNumberString } = useParams<{ treatmentNumber: string }>();
+  const currentTreatmentNumber = parseInt(treatmentNumberString || "1", 10);
 
-    // Effect to check auth status
-    useEffect(() => {
-        console.log(`ActivationPage Effect: location=${location.pathname}, userStatus=${userStatus}, isLoading=${isLoading}`);
-        if (userStatus === 'loading' || (userEmail && userStatus === 'none')) {
-            console.log("ActivationPage Effect: Triggering checkAuthStatus."); checkAuthStatus();
-        }
-    }, [checkAuthStatus, userEmail, userStatus, isLoading]);
+  const {
+    memory1: initialMemory1,
+    memory2: initialMemory2,
+    isRecording1: isCtxRecording1,
+    isRecording2: isCtxRecording2,
+    // setMemory1, // Assuming MemoryControls calls context setters directly
+    // setMemory2,
+    targetEventTranscript: sessionTargetTranscriptFromCtx,
+    audioBlobTarget: sessionTargetAudioBlobFromCtx,
+    setMemoriesSaved,
+    memoriesSaved,
+    setShowsSidebar,
+    calibrationSuds, // Get current calibrationSuds from context
+    setCalibrationSuds, // Destructure setCalibrationSuds from context
+  } = useRecording();
 
-    // Effect to manage sidebar
-    useEffect(() => { setShowsSidebar(true); }, [setShowsSidebar]);
+  const { userEmail, checkAuthStatus, userStatus, isLoading: isAuthLoading } = useAuth();
 
-    // Handler to Save Setup Data
-    const handleSaveSetup = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        console.log("Attempting to save setup.", { audioBlobTarget: !!audioBlobTarget, memory1, memory2, targetEventTranscript, calibrationSuds });
-        if (!targetEventTranscript || !memory1 || !memory2 || typeof calibrationSuds !== 'number' || calibrationSuds < 0 ) {
-            toast.error("Please record Target Event, rate SUDS, and record both Positive Memories before saving."); return;
-        }
-        console.log("Saving prerequisites to context via setMemoriesSaved(true)...");
-        setMemoriesSaved(true); toast.success("Activation Setup Complete! Ready for processing steps.");
-    };
+  const {
+    isRecordingTarget: isRecordingSessionTarget,
+    recordingTime: sessionTargetRecordingTime,
+    liveTranscript: sessionTargetLiveTranscript,
+    startTargetRecording,
+    stopTargetRecording,
+    error: sessionTargetRecordingError,
+    isSupported: isTargetRecordingSupported,
+  } = useTargetRecording();
 
-    // Handler for SUDS Scale component updates
-    const handleSudsChange = (value: number) => { setCalibrationSuds(value); };
+  const [sessionSuds, setSessionSuds] = useState<number | null>(() => {
+    // Initialize local sessionSuds based on context or default
+    if (currentTreatmentNumber === 1 && (calibrationSuds === null || calibrationSuds === 0)) {
+      return 50; // Default for very first time on T1 if context is 0/null
+    }
+    return calibrationSuds !== null ? calibrationSuds : 50; // Use context or default
+  });
 
-    if (isLoading) { return <div className="flex justify-center items-center min-h-screen">Loading User Data...</div>; }
+  useEffect(() => {
+    if (setShowsSidebar) { setShowsSidebar(true); }
+  }, [setShowsSidebar]);
 
-    // Main Render
-    return (
-        <div className="min-h-screen flex w-full">
-            <AppSidebar
-                visible={showsSidebar} calibrationSuds={calibrationSuds} targetEvent={audioBlobTarget || undefined}
-                memory1={memory1} memory2={memory2} completedTreatments={completedTreatments || []}
-                memoriesSaved={memoriesSaved}
-                setCompletedTreatments={setCompletedTreatments as React.Dispatch<SetStateAction<TreatmentResult[]>>}
-                setMemoriesSaved={setMemoriesSaved as React.Dispatch<SetStateAction<boolean>>}
-            />
-            <main className="flex-1 p-8 overflow-y-auto">
-                <div className="max-w-4xl mx-auto space-y-8 pb-16">
-                    {/* Header Section */}
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3"> <img src="/images/logo.png" alt="Logo" className="h-8 w-auto" /> <h1 className="text-2xl font-bold text-white">The Reconsolidation Program</h1> </div>
-                        {/* Tooltip for page info */}
-                        <TooltipProvider><Tooltip><TooltipTrigger asChild><button className="p-1 rounded-full hover:bg-muted/50"><Info className="w-5 h-5 text-gray-400" /></button></TooltipTrigger><TooltipContent><p>Complete these steps to activate the memory.</p></TooltipContent></Tooltip></TooltipProvider>
-                    </div>
-                    <h2 className="text-xl font-semibold text-center text-primary mb-6">Treatment Activation</h2>
+  useEffect(() => {
+    if (checkAuthStatus && (userStatus === 'loading' || (userEmail && userStatus === 'none'))) {
+      checkAuthStatus();
+    }
+  }, [checkAuthStatus, userEmail, userStatus]);
 
-                    {/* === SECTION 1: Target Event Recording === */}
-                    <section className="space-y-4 p-4 border-2 rounded-lg bg-card shadow-md" style={{ borderColor: '#4A1212' }}>
-                        {/* --- CORRECTED HEADER 1 JSX --- */}
-                        <h3 className="text-lg font-semibold flex items-center text-white">
-                            <span>1. Record Target Event (Audio - Under 3 mins)</span>
-                            <TooltipProvider delayDuration={100}>
-                                <Tooltip>
-                                    {/* Removed asChild, added basic styling */}
-                                    <TooltipTrigger className="ml-2 cursor-help inline-flex items-center justify-center p-1 rounded-full hover:bg-muted/50">
-                                        <Info size={16} className="text-muted-foreground"/>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Record audio describing the specific memory.</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </h3>
-                        {/* --- END CORRECTION --- */}
-                         {/* UI using the useTargetRecording hook */}
-                         {!isSupported && ( <div className="text-red-500 flex items-center space-x-2"><AlertCircle className="w-5 h-5"/><span>Browser not fully supported...</span></div> )}
-                         {recordingError && ( <div className="text-red-500 flex items-center space-x-2"><AlertCircle className="w-5 h-5"/><span>{recordingError}</span></div> )}
-                         <div className="flex items-center justify-between">
-                             {!isRecordingTarget ? ( <Button onClick={startTargetRecording} disabled={!isSupported || isRecordingTarget} size="sm"> <Mic className="w-4 h-4 mr-2" /> Start Target Recording </Button> )
-                              : ( <Button onClick={stopTargetRecording} variant="destructive" disabled={!isRecordingTarget} size="sm"> <Square className="w-4 h-4 mr-2" /> Stop Recording ({formatTime(recordingTime)} / 180s) </Button> )}
-                             {audioBlobTarget && !isRecordingTarget && ( <span className="text-sm text-green-500 ml-4">Audio Recorded</span> )}
-                         </div>
-                         {(isRecordingTarget || targetEventTranscript) && ( <div className="mt-4 p-3 bg-muted/50 rounded border border-border min-h-[60px]"><p className="text-sm text-muted-foreground italic">{isRecordingTarget ? "Live transcript..." : "Final transcript:"}</p><p className="text-sm">{isRecordingTarget ? liveTranscript : targetEventTranscript}</p></div> )}
-                    </section>
+  // This effect updates the local sessionSuds if the context's calibrationSuds changes
+  // AND if this page is for T1 and context calibrationSuds was initially null/0.
+  // This helps sync if context is updated externally or on first load.
+  useEffect(() => {
+    if (calibrationSuds !== null && sessionSuds !== calibrationSuds) {
+        // If context has a value and local doesn't match, prefer context as initial value
+        // unless user has already interacted with the slider on this page instance
+        // For simplicity, let's keep the init in useState for sessionSuds
+        // console.log(`ActivationPage (T${currentTreatmentNumber}): Context SUDS changed to ${calibrationSuds}, sessionSuds is ${sessionSuds}. Considering update.`);
+    }
+  }, [calibrationSuds, sessionSuds, currentTreatmentNumber]);
 
-                    {/* === SECTION 2: SUDS Calibration === */}
-                    <section className="space-y-4 p-4 rounded-lg bg-card shadow-md"> {/* Removed border */}
-                        {/* --- CORRECTED HEADER 2 JSX --- */}
-                        <h3 className="text-lg font-semibold flex items-center text-white">
-                            <span>2. Rate Initial Distress (SUDS)</span>
-                             <TooltipProvider delayDuration={100}>
-                                <Tooltip>
-                                     {/* Removed asChild, added basic styling */}
-                                    <TooltipTrigger className="ml-2 cursor-help inline-flex items-center justify-center p-1 rounded-full hover:bg-muted/50">
-                                        <Info size={16} className="text-muted-foreground"/>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Rate distress (0-100) thinking about the Target Event you just recalled/recorded.</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </h3>
-                         {/* --- END CORRECTION --- */}
-                        <SUDSScale initialValue={calibrationSuds || 0} onValueChange={handleSudsChange} />
-                    </section>
 
-                    {/* === SECTION 3: Context Memories === */}
-                    <section className="space-y-4 p-4 border border-yellow-500 rounded-lg bg-card shadow-md"> {/* Kept yellow border */}
-                        <h3 className="text-lg font-semibold text-white">3. Record Positive Context Memories (Audio)</h3>
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-4"> <h4 className="font-medium text-muted-foreground">Positive Memory 1 (Before Event)</h4> <MemoryControls memoryNumber={1} isRecording={isRecording1} /> </div>
-                            <div className="space-y-4"> <h4 className="font-medium text-muted-foreground">Positive Memory 2 (After Event)</h4> <MemoryControls memoryNumber={2} isRecording={isRecording2} /> </div>
-                        </div>
-                    </section>
+  const MIN_MEMORY_LENGTH = 5; 
+  const needsToRecordM1M2 = currentTreatmentNumber === 1 && 
+                           (!initialMemory1 || initialMemory1.trim().length < MIN_MEMORY_LENGTH || 
+                            !initialMemory2 || initialMemory2.trim().length < MIN_MEMORY_LENGTH);
 
-                    {/* Save and Proceed Buttons */}
-                    <div className="flex justify-end pt-4 space-x-4">
-                        <button onClick={handleSaveSetup} disabled={!targetEventTranscript || !memory1 || !memory2 || typeof calibrationSuds !== 'number' || calibrationSuds < 0 || memoriesSaved} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{memoriesSaved ? "Activation Saved" : "Save Activation Setup"}</button>
-                        <button onClick={() => navigate('/treatment-1')} disabled={!memoriesSaved} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center">Proceed to Processing <ArrowRight className="w-4 h-4 ml-2"/></button>
-                    </div>
-                </div>
-            </main>
+  const handleSessionSudsChange = useCallback((value: number) => {
+    console.log(`ActivationPage (T${currentTreatmentNumber}): SUDS slider changed to:`, value);
+    setSessionSuds(value); 
+    if (setCalibrationSuds) { 
+      setCalibrationSuds(value); 
+      console.log(`ActivationPage (T${currentTreatmentNumber}): Context calibrationSuds updated to:`, value);
+    }
+  }, [currentTreatmentNumber, setCalibrationSuds]);
+
+  const handleProceedToTreatment = () => {
+    console.log(`Calibration for T${currentTreatmentNumber}: handleProceedToTreatment called.`);
+    console.log("Values before validation:");
+    console.log("  sessionTargetTranscriptFromCtx:", sessionTargetTranscriptFromCtx);
+    console.log("  sessionSuds (local state, being used for this session):", sessionSuds);
+    console.log("  calibrationSuds (context state, for sidebar):", calibrationSuds);
+    console.log("  needsToRecordM1M2 (derived):", needsToRecordM1M2);
+    console.log("  initialMemory1 (from context):", initialMemory1);
+    console.log("  initialMemory2 (from context):", initialMemory2);
+    
+    if (!sessionTargetTranscriptFromCtx || sessionTargetTranscriptFromCtx.trim().length < MIN_MEMORY_LENGTH) {
+      toast.error(`Please record a valid Target Event for Treatment ${currentTreatmentNumber}.`);
+      return;
+    }
+    if (sessionSuds === null || sessionSuds < 0 || sessionSuds > 100) { 
+      toast.error(`Please rate your SUDS (0-100) for Treatment ${currentTreatmentNumber}.`);
+      return;
+    }
+
+    if (needsToRecordM1M2) { 
+      if (!initialMemory1 || initialMemory1.trim().length < MIN_MEMORY_LENGTH || 
+          !initialMemory2 || initialMemory2.trim().length < MIN_MEMORY_LENGTH) {
+        toast.error("Please record both Positive Context Memories (M1 & M2 fully) for the initial setup.");
+        return; 
+      }
+      if (setMemoriesSaved && currentTreatmentNumber === 1) {
+         setMemoriesSaved(true); 
+         console.log("ActivationPage: memoriesSaved flag set to true in context.");
+      }
+      // Also update the global calibrationSuds when M1/M2 are saved successfully for the first time.
+      if (setCalibrationSuds && sessionSuds !== null) {
+        setCalibrationSuds(sessionSuds);
+      }
+      toast.success("Initial Calibration Setup Complete!");
+    } else {
+      // For subsequent treatments (T2-T5), or T1 if M1/M2 were already set,
+      // still update the global calibrationSuds with this session's SUDS if it's T1.
+      // For T2-T5, the sidebar's "Initial SUDS" should ideally remain the *very first* SUDS.
+      // Let's only update context's calibrationSuds on T1, or if it's currently null.
+      if (currentTreatmentNumber === 1 && setCalibrationSuds && sessionSuds !== null) {
+        setCalibrationSuds(sessionSuds);
+      } else if (calibrationSuds === null && setCalibrationSuds && sessionSuds !== null){
+        setCalibrationSuds(sessionSuds); // If it was never set, set it now.
+      }
+      toast.success(`Calibration for Treatment ${currentTreatmentNumber} Complete!`);
+    }
+    
+    navigate(`/treatment-${currentTreatmentNumber}`, {
+      state: {
+        treatmentNumber: currentTreatmentNumber,
+        sessionTargetEvent: sessionTargetTranscriptFromCtx,
+        sessionSuds: sessionSuds, 
+      },
+    });
+  };
+
+  if (isAuthLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading User Data...</div>;
+  }
+
+  return (
+    <div className="w-full space-y-8 animate-fadeIn">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <img src="/images/logo.png" alt="Logo" className="h-8 w-auto" />
+          <h1 className="text-2xl font-bold text-white">The Reconsolidation Program</h1>
         </div>
-    );
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger className="p-1 rounded-full hover:bg-muted/50 inline-flex items-center justify-center">
+              <Info className="w-5 h-5 text-gray-400" />
+            </TooltipTrigger>
+            <TooltipContent><p>Calibrate your target memory for this treatment session.</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <h2 className="text-xl font-semibold text-center text-primary mb-6">
+        Calibration for Treatment {currentTreatmentNumber}
+      </h2>
+
+      <section className="space-y-4 p-4 border-2 rounded-lg bg-card shadow-md" style={{ borderColor: '#4A1212' }}>
+        <h3 className="text-lg font-semibold flex items-center text-white">
+          1. Re-activate & Record Target Event (Audio - Under 2 mins)
+          <TooltipProvider delayDuration={100}><Tooltip>
+            <TooltipTrigger className="ml-2 cursor-help"><Info size={16} className="text-muted-foreground"/></TooltipTrigger>
+            <TooltipContent><p>Briefly recall and describe the specific memory you are targeting for this treatment session.</p></TooltipContent>
+          </Tooltip></TooltipProvider>
+        </h3>
+        {!isTargetRecordingSupported && ( <div className="text-red-500 flex items-center space-x-2"><AlertCircle className="w-5 h-5"/><span>Browser not fully supported for recording.</span></div> )}
+        {sessionTargetRecordingError && ( <div className="text-red-500 flex items-center space-x-2"><AlertCircle className="w-5 h-5"/><span>{sessionTargetRecordingError}</span></div> )}
+        <div className="flex items-center justify-between">
+          {!isRecordingSessionTarget ? (
+            <Button onClick={startTargetRecording} disabled={!isTargetRecordingSupported || isRecordingSessionTarget} size="sm">
+              <Mic className="w-4 h-4 mr-2" /> Start Target Recording (Session {currentTreatmentNumber})
+            </Button>
+          ) : (
+            <Button onClick={stopTargetRecording} variant="destructive" disabled={!isRecordingSessionTarget} size="sm">
+              <Square className="w-4 h-4 mr-2" /> Stop Recording ({formatTime(sessionTargetRecordingTime)} / 180s)
+            </Button>
+          )}
+          {sessionTargetAudioBlobFromCtx && !isRecordingSessionTarget && ( <span className="text-sm text-green-500 ml-4">Target Audio for T{currentTreatmentNumber} Recorded</span> )}
+        </div>
+        {(isRecordingSessionTarget || sessionTargetTranscriptFromCtx) && (
+          <div className="mt-4 p-3 bg-muted/50 rounded border border-border min-h-[60px]">
+            <p className="text-sm text-muted-foreground italic">{isRecordingSessionTarget ? "Live transcript..." : `Final transcript for T${currentTreatmentNumber}:`}</p>
+            <p className="text-sm">{isRecordingSessionTarget ? sessionTargetLiveTranscript : sessionTargetTranscriptFromCtx}</p>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-4 p-4 rounded-lg bg-card shadow-md">
+        <h3 className="text-lg font-semibold flex items-center text-white">
+          2. Rate Current Distress (SUDS) for Treatment {currentTreatmentNumber}
+           <TooltipProvider><Tooltip>
+                <TooltipTrigger className="ml-2 cursor-help"><Info size={16} className="text-muted-foreground"/></TooltipTrigger>
+                <TooltipContent><p>Rate your distress (0-100) thinking about the Target Event *right now*.</p></TooltipContent>
+            </Tooltip></TooltipProvider>
+        </h3>
+        <SUDSScale 
+          initialValue={sessionSuds === null ? 50 : sessionSuds} 
+          onValueChange={handleSessionSudsChange} 
+        />
+      </section>
+
+      <section className={`space-y-4 p-4 border rounded-lg bg-card shadow-md ${needsToRecordM1M2 ? 'border-yellow-500' : 'border-gray-700 opacity-70'}`}>
+        <h3 className="text-lg font-semibold text-white">
+          3. Positive Context Memories (Audio)
+          {!needsToRecordM1M2 && <span className="text-sm font-normal text-muted-foreground"> (Recorded during initial setup)</span>}
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          {needsToRecordM1M2 
+            ? "Record two brief positive memories (around 30 seconds each): one from before the target event, and one from after."
+            : "These positive memories were recorded during your initial setup and will be used for this treatment."
+          }
+        </p>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2"> 
+            <h4 className="font-medium text-muted-foreground">Positive Memory 1 (Before Event)</h4>
+            {needsToRecordM1M2 && <p className="text-xs italic text-muted-foreground/80 px-1">Please start your description with "I was..."</p>}
+            {needsToRecordM1M2 ? (
+              <MemoryControls memoryNumber={1} isRecording={isCtxRecording1} />
+            ) : (
+              <div className="p-3 bg-muted/50 rounded border border-border min-h-[40px] text-sm text-muted-foreground italic">
+                {initialMemory1 ? `Previously recorded: "${initialMemory1.substring(0,70)}..."` : "Not recorded yet."}
+              </div>
+            )}
+          </div>
+          <div className="space-y-2"> 
+            <h4 className="font-medium text-muted-foreground">Positive Memory 2 (After Event)</h4>
+            {needsToRecordM1M2 && <p className="text-xs italic text-muted-foreground/80 px-1">Please start your description with "I was..."</p>}
+            {needsToRecordM1M2 ? (
+              <MemoryControls memoryNumber={2} isRecording={isCtxRecording2} />
+            ) : (
+              <div className="p-3 bg-muted/50 rounded border border-border min-h-[40px] text-sm text-muted-foreground italic">
+                {initialMemory2 ? `Previously recorded: "${initialMemory2.substring(0,70)}..."` : "Not recorded yet."}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="flex justify-end pt-4">
+        <Button 
+          onClick={handleProceedToTreatment} 
+          disabled={
+            !sessionTargetTranscriptFromCtx || sessionTargetTranscriptFromCtx.trim().length < MIN_MEMORY_LENGTH ||
+            sessionSuds === null || sessionSuds < 0 || sessionSuds > 100 ||
+            (needsToRecordM1M2 && 
+              (!initialMemory1 || initialMemory1.trim().length < MIN_MEMORY_LENGTH || 
+               !initialMemory2 || initialMemory2.trim().length < MIN_MEMORY_LENGTH)
+            )
+          } 
+          className="px-6 py-3 text-base bg-green-600 hover:bg-green-700 flex items-center"
+          size="lg"
+        >
+          Proceed to Reconsolidation Protocol (Treatment {currentTreatmentNumber}) <ArrowRight className="w-5 h-5 ml-2"/>
+        </Button>
+      </div>
+    </div>
+  );
 };
 export default ActivationPage;

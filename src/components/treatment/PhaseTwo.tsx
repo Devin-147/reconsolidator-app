@@ -24,7 +24,7 @@ export const PhaseTwo = ({
       </div>
       <p className="text-muted-foreground">
         Now imagine the same scene, but the movie is in black and white. How does removing the color change your 
-        perception? What details stand out differently? How do the shadows and light play differently in this version?
+        perception? What details stand out differently? Which changes are you noticing in this version?
       </p>
       <Textarea
         value={response}

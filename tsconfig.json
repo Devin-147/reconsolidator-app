@@ -1,4 +1,3 @@
-// FILE: tsconfig.json (at the root of your project)
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -6,34 +5,26 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler", // Or "node" if you had that
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-    /* Aliases */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "api"], // Include 'api' if your Vercel serverless functions are also in Node.js/TS
+  "include": ["src", "api"],
   "references": [{ "path": "./tsconfig.node.json" }],
-  // --- ADD THIS EXCLUDE SECTION ---
   "exclude": [
     "node_modules",
     "dist",
-    "supabase/functions" // <<< EXCLUDE SUPABASE EDGE FUNCTIONS
+    "supabase/functions"
   ]
-  // --- END EXCLUDE SECTION ---
 }

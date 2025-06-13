@@ -1,39 +1,39 @@
+// FILE: tsconfig.json (at the root of your project)
 {
   "compilerOptions": {
-    /* --- Vite/React Build Options --- */
-    "target": "ES2020",                 // Target modern JavaScript features
-    "useDefineForClassFields": true,    // Standard for modern class fields
-    "module": "ESNext",                 // Use modern ES modules
-    "lib": ["ES2020", "DOM", "DOM.Iterable"], // Include necessary libraries for browser and modern JS
-    "skipLibCheck": true,               // Skip type checking of declaration files (node_modules)
-    "esModuleInterop": true,            // Enables compatibility with CommonJS modules
-    "allowSyntheticDefaultImports": true, // Allows default imports from modules with no default export
-    "forceConsistentCasingInFileNames": true, // Enforce consistent file naming casing
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
 
-    "moduleResolution": "Node",         // <<< Use Node module resolution strategy
-    // "allowImportingTsExtensions": true, // <<< REMOVED
-    "resolveJsonModule": true,          // Allow importing JSON files
-    "isolatedModules": true,            // Treat files as separate modules (required by Babel/Vite)
-    "noEmit": true,                     // Do not output JS files (Vite handles this)
-    "jsx": "react-jsx",                 // Use the new JSX transform
+    /* Bundler mode */
+    "moduleResolution": "bundler", // Or "node" if you had that
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
 
-    /* --- Linting / Strictness Options --- */
-    "strict": true,                     // Enable all strict type-checking options (recommended)
-    // Add back specific strictness overrides below if needed, but 'strict: true' is usually best
-    // "noImplicitAny": false,
-    // "noUnusedLocals": false,
-    // "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true, // Report errors for fallthrough cases in switch statements
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
 
-    /* --- Path Aliases (Keep if you use them) --- */
-    "baseUrl": ".",                     // Base directory for non-relative module resolution
+    /* Aliases */
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]                // Example: Allows import '@/components/...'
+      "@/*": ["src/*"]
     }
-
-    // "types": ["./node_modules/vite/client"] // <<< REMOVED
   },
-  "include": ["src", "**/*.ts", "**/*.tsx"], // <<< Files TypeScript should check
-  "exclude": ["node_modules", "dist"]      // <<< Folders TypeScript should ignore
-  // "references" line fully removed as tsconfig.node.json doesn't exist
+  "include": ["src", "api"], // Include 'api' if your Vercel serverless functions are also in Node.js/TS
+  "references": [{ "path": "./tsconfig.node.json" }],
+  // --- ADD THIS EXCLUDE SECTION ---
+  "exclude": [
+    "node_modules",
+    "dist",
+    "supabase/functions" // <<< EXCLUDE SUPABASE EDGE FUNCTIONS
+  ]
+  // --- END EXCLUDE SECTION ---
 }

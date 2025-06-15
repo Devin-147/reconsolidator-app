@@ -1,7 +1,8 @@
 // FILE: src/App.tsx
 
-// DEPLOY_MARKER_JUNE_13_A
-
+// DEPLOY_MARKER_JUNE_13_FROM_MAC_TERMINAL_TEST_B 
+// (Make it unique from any previous markers)
+// ... rest of the file
 import React from 'react';
 import {
   BrowserRouter as Router,

@@ -1,4 +1,7 @@
 // FILE: src/components/AnimatedLogoWithAudio.tsx
+// #Inner-background is STATIC DARK, NEVER animated by GSAP.
+// Knight Rider blip is ALWAYS part of the main animation loop if active.
+// Implements new Zap 1 (Circuit Ignition), Zap 3 (Shoulder Surge), Zap 7 (Rapid Shoulder Trill).
 
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
@@ -10,7 +13,6 @@ import MyActualLogo from '@/components/MyActualLogo';
 
 gsap.registerPlugin(MotionPathPlugin, Physics2DPlugin);
 
-// <<< --- THIS IS THE FULL AND CORRECT PROPS INTERFACE --- >>>
 interface AnimatedLogoWithAudioProps {
   audioUrl: string | null; 
   onPlaybackEnd?: () => void;
@@ -19,11 +21,25 @@ interface AnimatedLogoWithAudioProps {
   playButtonText?: string;
   showLoadingText?: boolean;
   playMainAnimations?: boolean; 
-  triggerZapEffect?: 'zap1' | 'zap2' | 'zap3' | 'zap5' | 'zap6' | 'zap7' | 'zap_ils' | 'zap_tlw' | 'narration1_sequence' | null;
+  triggerZapEffect?: 
+    'zap1_circuit_ignition' | 
+    'zap2_kr_overcharge' | // Retained for now, can be removed if truly unused
+    'zap3_shoulder_surge' | 
+    'zap5_particle_burst' | 
+    'zap6_fluorescent' | 
+    'zap7_rapid_trill' | 
+    'narration1_sequence' | 
+    // Placeholders for future zaps from your list
+    'zap_window_flare_beam' | 
+    'zap_fractal_glow' |
+    'zap_color_cycle' |
+    'zap_segmented_wave' |
+    'zap_window_shoulder_echo' |
+    null;
   onZapCompleted?: () => void;
   animationVariant?: number; 
+  shoulderTrillSpeed?: 'fast' | 'medium' | 'slow';
 }
-// <<< --- END OF PROPS INTERFACE --- >>>
 
 const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   audioUrl, 
@@ -36,16 +52,17 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   triggerZapEffect = null,
   onZapCompleted,
   animationVariant = 0,
+  shoulderTrillSpeed = 'fast',
 }) => {
   const [actualIsPlayingAudio, setActualIsPlayingAudio] = useState(false);
-  const shouldPlayMainAnimationsState = playMainAnimations || (actualIsPlayingAudio && !!audioUrl);
+  const shouldPlayMainLoop = playMainAnimations || actualIsPlayingAudio;
   const [isAudioLoaded, setIsAudioLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const svgContainerRef = useRef<HTMLDivElement | null>(null); 
   const mainAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null);
   
   const outerGlowRef = useRef<SVGElement | null>(null);
-  const innerBackgroundRef = useRef<SVGElement | null>(null);
+  // innerBackgroundRef is not needed for GSAP manipulation
   const knightRiderPathElRef = useRef<SVGPathElement | null>(null);
   const scanBlipRef = useRef<SVGRectElement | null>(null);
   const circuitBlipsRef = useRef<(SVGCircleElement | null)[]>([]);
@@ -53,14 +70,17 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   const innerRightShoulderRef = useRef<SVGPathElement | null>(null);
   const innerLeftShoulderRef = useRef<SVGPathElement | null>(null);
   const topLeftWindowRef = useRef<SVGPathElement | null>(null);
+  const topRightWindowRef = useRef<SVGPathElement | null>(null);
 
+  // GSAP Main Looping Timeline Setup
   useEffect(() => {
     if (!svgContainerRef.current) return;
     const svgEl = svgContainerRef.current.firstChild as SVGSVGElement | null; 
     if (!svgEl || typeof svgEl.querySelector !== 'function') { return; }
     svgElementRef.current = svgEl;
+
     outerGlowRef.current = svgEl.querySelector('#outer-glow');
-    innerBackgroundRef.current = svgEl.querySelector('#Inner-background');
+    // innerBackgroundRef.current = svgEl.querySelector('#Inner-background'); // Not needed for animation
     knightRiderPathElRef.current = svgEl.querySelector('#Knight-rider');
     scanBlipRef.current = svgEl.querySelector('#scanBlip'); 
     const circuitPathElement = svgEl.querySelector('#circuitPathDefinition') as SVGPathElement | null;
@@ -68,13 +88,17 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     innerRightShoulderRef.current = svgEl.querySelector('#inner-right-shoulder');
     innerLeftShoulderRef.current = svgEl.querySelector('#outer-left-shoulder');
     topLeftWindowRef.current = svgEl.querySelector('#top-left-window');
+    topRightWindowRef.current = svgEl.querySelector('#top-right-window');
 
-    const tl = gsap.timeline({ paused: true }); mainAnimationTimelineRef.current = tl;
-    let glowDuration = 0.9, innerBgDuration = 1.2, krScanDuration = 0.75;
-    if (animationVariant % 3 === 1) { glowDuration = 0.7; innerBgDuration = 1.0; krScanDuration = 0.65; }
-    else if (animationVariant % 3 === 2) { glowDuration = 1.1; innerBgDuration = 1.4; krScanDuration = 0.85;}
+    const tl = gsap.timeline({ paused: true }); 
+    mainAnimationTimelineRef.current = tl;
+    let glowDuration = 0.9, krScanDuration = 0.75; 
+    if (animationVariant % 3 === 1) { glowDuration = 0.7; krScanDuration = 0.65; }
+    else if (animationVariant % 3 === 2) { glowDuration = 1.1; krScanDuration = 0.85;}
+    
     if (outerGlowRef.current) { tl.to(outerGlowRef.current, { opacity: 0.6, duration: glowDuration, ease: 'power1.inOut', yoyo: true, repeat: -1 }, "startSync"); }
-    if (innerBackgroundRef.current) { tl.to(innerBackgroundRef.current, { scale: 1.015, opacity: 0.9, transformOrigin: "center center", duration: innerBgDuration, ease: 'sine.inOut', yoyo: true, repeat: -1 }, "startSync"); }
+    // NO GSAP ANIMATION FOR #Inner-background in the main timeline. It remains static dark via CSS.
+    
     if (knightRiderPathElRef.current && scanBlipRef.current) {
         gsap.set(knightRiderPathElRef.current, { opacity: 1 }); 
         const sX=453, sW=304, bW=Math.floor(sW*0.33); gsap.set(scanBlipRef.current, {attr:{width:bW, x:sX}});
@@ -91,70 +115,82 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
 
   useEffect(() => { 
     const knightRiderPath = knightRiderPathElRef.current;
-    if (shouldPlayMainAnimationsState) { 
+    if (shouldPlayMainLoop) { 
         mainAnimationTimelineRef.current?.play(); 
         if (knightRiderPath) gsap.to(knightRiderPath, { attr: { filter: 'url(#knightRiderGlow)' }, fill: 'white', duration: 0.1 });
     } else { 
         mainAnimationTimelineRef.current?.pause(); 
         if (knightRiderPath) gsap.to(knightRiderPath, { clearProps: "filter", fill: '#65d9e6', duration: 0.2 });
     } 
-  }, [shouldPlayMainAnimationsState]);
+  }, [shouldPlayMainLoop]);
 
   useEffect(() => {
     if (!triggerZapEffect || !svgElementRef.current) { if (triggerZapEffect === null && onZapCompleted) { onZapCompleted(); } return; }
-    const wasMainPlaying = mainAnimationTimelineRef.current?.isActive() && shouldPlayMainAnimationsState;
-    const ib = innerBackgroundRef.current; 
-    const onEffectComplete = () => { 
-        if ((triggerZapEffect === 'zap5' || triggerZapEffect === 'narration1_sequence') && ib) {
-           gsap.killTweensOf(ib, "opacity,visibility,fill"); 
-           gsap.set(ib, { visibility: 'visible', clearProps: "opacity,fill" }); 
-           const mainIbTween = mainAnimationTimelineRef.current?.getTweensOf(ib)[0];
-           if (mainIbTween && shouldPlayMainAnimationsState) { mainIbTween.invalidate().play(0); if(mainAnimationTimelineRef.current && !mainAnimationTimelineRef.current.isActive()) mainAnimationTimelineRef.current.play(); } 
-           else if (ib) { gsap.set(ib, { opacity: 0.9, fill: '#192835' }); }
-        }
-        if(!wasMainPlaying&&mainAnimationTimelineRef.current?.isActive()&&!shouldPlayMainAnimationsState){mainAnimationTimelineRef.current?.pause();} if(onZapCompleted)onZapCompleted();
-    };
-    let zapDelay=0; 
-    if ((triggerZapEffect === 'zap5' || triggerZapEffect === 'narration1_sequence') && ib) { 
-        mainAnimationTimelineRef.current?.getTweensOf(ib).forEach(tween => tween.pause());
-        gsap.set(ib, { opacity: 0, visibility: 'hidden' });
-        if (!wasMainPlaying && triggerZapEffect === 'zap5') zapDelay = 0.3; 
-    } else if (!wasMainPlaying && mainAnimationTimelineRef.current) { mainAnimationTimelineRef.current.play(); }
-
-    const zapTl = gsap.timeline({ onComplete: onEffectComplete, delay: zapDelay });
-    const og=outerGlowRef.current, kr=knightRiderPathElRef.current, irs=innerRightShoulderRef.current, ils=innerLeftShoulderRef.current, tlw=topLeftWindowRef.current, sb=scanBlipRef.current;
-
-    if (triggerZapEffect === 'zap1' && og) {zapTl.fromTo(og,{filter:"brightness(1)"},{filter:"brightness(5.5) saturate(3.5)",duration:0.05,yoyo:true,repeat:1,ease:"power3.out"});}
-    else if(triggerZapEffect === 'zap2' && kr && sb){const oF=gsap.getProperty(sb,"fill");zapTl.to(kr,{fill:"#FFFFFF",attr:{filter:"url(#knightRiderGlow)"},duration:0.04,yoyo:true,repeat:1}).fromTo(sb,{attr:{width:(gsap.getProperty(sb,"width")as number)*1.3,x:(gsap.getProperty(sb,"x")as number)-(gsap.getProperty(sb,"width")as number*0.15)},fill:"white",opacity:1},{attr:{width:gsap.getProperty(sb,"width"),x:gsap.getProperty(sb,"x")},fill:oF as string,opacity:1,duration:0.1,yoyo:true,repeat:1,ease:"power1.out"});}
-    else if(triggerZapEffect === 'zap3' && og && kr){zapTl.to(kr ? [og,kr] : [og],{opacity:1,fill:(i,t)=>t===kr?"white":(t?String(gsap.getProperty(t,"fill")):"#39e5f6"),attr:{filter:(i,t)=>t===kr?'url(#knightRiderGlow)':(t?"brightness(3.5)":"none")},duration:0.06,yoyo:true,repeat:1,ease:"power3.out",onComplete:()=>{if(kr)gsap.to(kr,{clearProps:"filter",fill:shouldPlayMainAnimationsState?"white":"#65d9e6",delay:0.1});}}); }
-    else if(triggerZapEffect === 'zap5' && svgElementRef.current && ib){
-        let pA:SVGCircleElement[]=[];const bOY=378;for(let i=0;i<50;i++){let p=document.createElementNS("http://www.w3.org/2000/svg","circle");gsap.set(p,{attr:{cx:600,cy:bOY,r:0,fill:`hsl(${190+Math.random()*40},100%,${90+Math.random()*10}%)`},opacity:1});if(svgElementRef.current)svgElementRef.current.appendChild(p);pA.push(p);}
-        zapTl.to(pA,{attr:{r:()=>7+Math.random()*16},physics2D:{velocity:()=>300+Math.random()*280,angle:()=>Math.random()*360-90,gravity:0},opacity:.8,duration:0.9+Math.random()*0.7,stagger:0.002,ease:"expo.out",onComplete:()=>pA.forEach(p=>p.remove())});
-    }
-    else if(triggerZapEffect === 'zap6' && kr){const zT6=gsap.timeline();zT6.set(kr,{fill:"white",attr:{filter:"url(#intenseZapGlow)"}}).to(kr,{opacity:0.2,duration:0.04}).to(kr,{opacity:1,duration:0.04}).to(kr,{opacity:0.1,duration:0.03}).to(kr,{opacity:0.9,duration:0.05}).to(kr,{opacity:0.2,duration:0.03}).to(kr,{opacity:1,duration:0.15}).to(kr,{opacity:0,duration:0.06,delay:0.2}).set(kr,{fill:shouldPlayMainAnimationsState?"white":"#65d9e6",attr:{filter:shouldPlayMainAnimationsState?"url(#knightRiderGlow)":"none"}}); zapTl.add(zT6);}
-    else if(triggerZapEffect === 'zap7' && irs){gsap.set(irs,{transformOrigin:"center center"});const zT7=gsap.timeline();zT7.to(irs,{scale:1.4,fill:"white",filter:"url(#intenseZapGlow)",duration:0.07,ease:"power2.out"}).to(irs,{scale:1,fill:gsap.getProperty(irs,"fill")as string,clearProps:"filter",duration:0.3,ease:"power2.in"}); zapTl.add(zT7);}
-    else if(triggerZapEffect === 'zap_ils' && ils) {gsap.set(ils,{transformOrigin:"center center"});const zTils=gsap.timeline();zTils.to(ils,{scale:1.2,rotation:"-=5",fill:"white",filter:"url(#intenseZapGlow)",duration:0.07,ease:"power2.out"}).to(ils,{scale:1,rotation:"+=5",fill:gsap.getProperty(ils,"fill")as string,clearProps:"filter",duration:0.3,ease:"power2.in"}); zapTl.add(zTils);}
-    else if(triggerZapEffect === 'zap_tlw' && tlw) {gsap.set(tlw,{transformOrigin:"center center"});const zTtlw=gsap.timeline();zTtlw.to(tlw,{scale:1.5,opacity:0.3,fill:"#a0faff",filter:"brightness(3)",duration:0.06,ease:"power2.out"}).to(tlw,{scale:1,opacity:1,fill:gsap.getProperty(tlw,"fill")as string,clearProps:"filter",duration:0.3,ease:"power2.in"}); zapTl.add(zTtlw);}
-    else if(triggerZapEffect === 'narration1_sequence' && ils && irs && og && ib && svgElementRef.current) {
-        const seqTl = gsap.timeline(); 
-        if(ib) gsap.set(ib, { opacity: 0, visibility: 'hidden' }); // Hide ib for particle part
-        const shoulderTrill=gsap.timeline();if(ils&&irs){[ils,irs,ils,irs,ils].forEach((s,j)=>{if(s)shoulderTrill.fromTo(s,{scale:1,opacity:0.8,fill:gsap.getProperty(s,"fill")as string,filter:"none"},{scale:1.3,opacity:1,fill:"white",filter:"url(#intenseZapGlow)",duration:0.06,ease:"power2.out",yoyo:true,repeat:1},j*0.12);});}
-        seqTl.add(shoulderTrill)
-             .set(ils && irs ? [ils,irs] : [],{clearProps:"filter,fill,opacity,scale"},">")
-             .fromTo(og ? og : [], {opacity:0.3, filter:"brightness(0.5)"},{opacity:1, filter:"brightness(1.5)", duration:1.5,ease:"power2.inOut"},"+=0.1")
-             .call(()=>{let pA:SVGCircleElement[]=[];const bOY=378;for(let i=0;i<50;i++){let p=document.createElementNS("http://www.w3.org/2000/svg","circle");gsap.set(p,{attr:{cx:600,cy:bOY,r:0,fill:`hsl(${190+Math.random()*40},100%,${90+Math.random()*10}%)`},opacity:1});if(svgElementRef.current)svgElementRef.current.appendChild(p);pA.push(p);}gsap.to(pA,{attr:{r:()=>7+Math.random()*16},physics2D:{velocity:()=>300+Math.random()*280,angle:()=>Math.random()*360-90,gravity:0},opacity:0,duration:0.9+Math.random()*0.7,stagger:0.002,ease:"expo.out",onComplete:()=>pA.forEach(p=>p.remove())});},[],"+=0.1")
-             .call(()=>{if(ib){gsap.set(ib,{visibility:'visible',clearProps:"opacity,fill"});const mIT=mainAnimationTimelineRef.current?.getTweensOf(ib)[0];if(mIT&&shouldPlayMainAnimationsState)mIT.play(0);else gsap.set(ib,{opacity:0.9,fill:'#192835'});}},[],">0.8") // Restore ib for surge
-             .to(ils ? ils : [],{opacity:1,fill:"white",filter:"url(#intenseZapGlow)",duration:0.1},"shouldersOn+=0.8").to(irs ? irs : [],{opacity:1,fill:"white",filter:"url(#intenseZapGlow)",duration:0.1},"shouldersOn+=0.8")
-             .to(ils && irs ? [ils,irs] : [],{opacity:0,clearProps:"filter,fill",duration:0.2,delay:0.3},"shouldersOn+=0.1")
-             .to(kr ? (og ? [og,kr] : [kr]) : (og ? [og] : []), // ib NOT in this surge
-                {opacity:1,fill:(i,t)=>t===kr?"white":(t?String(gsap.getProperty(t,"fill")):"#39e5f6"),attr:{filter:(i,t)=>t===kr?'url(#knightRiderGlow)':(t?"brightness(3.5)":"none")},duration:0.06,yoyo:true,repeat:1,ease:"power3.out",delay:0.2}
-              );
-        zapTl.add(seqTl);
-    }
-    else if (triggerZapEffect) { console.warn(`Zap "${triggerZapEffect}" unhandled or elements missing.`); onEffectComplete(); }
-    else { if(onZapCompleted) onZapCompleted(); }
     
-  }, [triggerZapEffect, onZapCompleted, shouldPlayMainAnimationsState, animationVariant]);
+    const wasMainPlaying = mainAnimationTimelineRef.current?.isActive() && shouldPlayMainLoop;
+    if (!wasMainPlaying) { mainAnimationTimelineRef.current?.play(); }
+                
+    const onEffectComplete = () => { 
+      if (!wasMainPlaying && mainAnimationTimelineRef.current?.isActive() && !shouldPlayMainLoop) { 
+        mainAnimationTimelineRef.current?.pause(); 
+      }
+      if (onZapCompleted) onZapCompleted(); 
+    };
+    
+    const zapTl = gsap.timeline({ onComplete: onEffectComplete });
+    const og=outerGlowRef.current, kr=knightRiderPathElRef.current, irs=innerRightShoulderRef.current, ils=innerLeftShoulderRef.current, tlw=topLeftWindowRef.current, trw=topRightWindowRef.current, sb=scanBlipRef.current;
+    const allDiscoParts = [og, kr, irs, ils, tlw, trw, sb, ...circuitBlipsRef.current].filter(el => el);
+
+    if (triggerZapEffect === 'zap1_circuit_ignition') {
+        const circuitBlips = circuitBlipsRef.current.filter(b => b);
+        if (circuitPathElement && circuitBlips.length > 0) { // circuitPathElement from outer scope
+            zapTl.to(circuitBlips, { scale: 1.8, opacity: 1, duration: 0.2, stagger: 0.04, ease: "expo.out" }, 0)
+                 .to(circuitBlips, { motionPath: { path: circuitPathElement, align: circuitPathElement, speed: 700, autoRotate: true }, duration: 0.8, ease: "none" }, 0.05);
+        }
+        const ignitionOrder = [ils, irs, tlw, trw, og, kr].filter(el => el);
+        if (ignitionOrder.length > 0) {
+            zapTl.fromTo(ignitionOrder, 
+                { opacity: 0.5, filter: "brightness(1)" },
+                { opacity: 1, filter: "brightness(3) saturate(2)", duration: 0.1, stagger: { each: 0.1, from: "start", yoyo: true, repeat: 1 }}, 
+            0.4); 
+        }
+        if (og && kr && ils && irs && tlw && trw) { zapTl.to([og, kr, ils, irs, tlw, trw].filter(el=>el), { filter: "brightness(2.5) hue-rotate(15deg)", duration: 1, yoyo: true, repeat: 2 }, 1.2); }
+        if(zapTl.duration() < 5) zapTl.to({}, {duration: 5 - zapTl.duration()});
+    }
+    else if(triggerZapEffect === 'zap3_shoulder_surge' && ils && irs && og && kr) {
+        const shoulderFlare = (target: SVGElement | null) => { if(!target) return gsap.timeline(); return gsap.timeline().fromTo(target, {opacity:0.5},{opacity:1, scale:1.2, fill:"white", filter:"url(#intenseZapGlow)", duration:0.08, yoyo:true, repeat:1}).set(target, {clearProps:"filter,fill,scale,opacity"}); };
+        zapTl.add(shoulderFlare(ils)).add(shoulderFlare(irs), "-=0.1").add(shoulderFlare(ils), "-=0.1").add(shoulderFlare(irs), "-=0.1")
+             .to([ils, irs].filter(el=>el), { filter: "brightness(2.5)", duration: 0.5, ease: "power1.inOut" }, ">")
+             .to(og, { filter: "brightness(3) saturate(2)", yoyo: true, repeat: 3, duration: 0.3, ease: "power2.inOut" }, ">-0.2")
+             .to(kr, { fill: "white", attr:{filter:"url(#knightRiderGlow)"}, yoyo:true, repeat:3, duration:0.3, ease:"power2.inOut"}, "<")
+             .set([ils, irs, og, kr].filter(el=>el), {clearProps: "filter,fill"}, ">");
+        if(zapTl.duration() < 5) zapTl.to({}, {duration: 5 - zapTl.duration()});
+    }
+    else if(triggerZapEffect === 'zap5_particle_burst' && svgElementRef.current){
+        let pA:SVGCircleElement[]=[];const bOY=378;for(let i=0;i<50;i++){let p=document.createElementNS("http://www.w3.org/2000/svg","circle");gsap.set(p,{attr:{cx:600,cy:bOY,r:0,fill:`hsl(${190+Math.random()*40},100%,${90+Math.random()*10}%)`},opacity:1});if(svgElementRef.current)svgElementRef.current.appendChild(p);pA.push(p);}
+        zapTl.to(pA,{attr:{r:()=>7+Math.random()*16},physics2D:{velocity:()=>300+Math.random()*280,angle:()=>Math.random()*360-90,gravity:0},opacity:0,duration:0.9+Math.random()*0.7,stagger:0.002,ease:"expo.out",onComplete:()=>pA.forEach(p=>p.remove())});
+        if(zapTl.duration() < 5) zapTl.to({}, {duration: 5 - zapTl.duration()}); // Ensure 5s
+    }
+    else if(triggerZapEffect === 'zap7_rapid_trill' && ils && irs){
+        const trillSpeedVal = shoulderTrillSpeed === 'fast' ? 0.035 : shoulderTrillSpeed === 'medium' ? 0.055 : 0.08;
+        const singleTrillFlare = (target: SVGElement | null) => { if (!target) return gsap.timeline(); return gsap.timeline().fromTo(target, {opacity:0.2, scale:0.95},{opacity:1, scale:1.1, fill:"white", filter:"url(#intenseZapGlow)", duration:trillSpeedVal, ease:"power1.out", yoyo:true, repeat:1}).set(target, {clearProps:"filter,fill,opacity,scale"});}
+        for (let i = 0; i < 6; i++) { 
+            if (irs) zapTl.add(singleTrillFlare(irs), i * (trillSpeedVal * 2 + 0.005)); 
+            if (ils) zapTl.add(singleTrillFlare(ils), i * (trillSpeedVal * 2 + 0.005) + trillSpeedVal); 
+        }
+        const trillDuration = 6 * (trillSpeedVal * 2 + 0.005) + trillSpeedVal;
+        if (trillDuration < 1) zapTl.to({}, {duration: 1 - trillDuration }); // Ensure at least 1s for trill part
+        if (zapTl.duration() < 5) zapTl.to({}, {duration: 5 - zapTl.duration()}); // Pad to 5s
+    }
+    // Placeholder for other Zaps based on your "YES" list
+    else if (triggerZapEffect === 'zap_window_flare_beam' && tlw && trw && og) { zapTl.to(og, {opacity:0.5, duration: 5}); /* Placeholder */ }
+    else if (triggerZapEffect === 'zap_fractal_glow' && og) { zapTl.to(og, {opacity:0.5, duration: 5});  /* Placeholder */ }
+    else if (triggerZapEffect === 'zap_color_cycle' && og && ils && irs && tlw && trw) { zapTl.to(og, {opacity:0.5, duration: 5}); /* Placeholder */ }
+    else if (triggerZapEffect === 'zap_window_shoulder_echo' && tlw && trw && ils && irs) { zapTl.to(og, {opacity:0.5, duration: 5}); /* Placeholder */ }
+    else if (triggerZapEffect) { console.warn(`Zap "${triggerZapEffect}" unhandled or elements missing.`); onEffectComplete(); }
+    else { if(onZapCompleted) onZapCompleted(); } // If triggerZapEffect became null
+    
+  }, [triggerZapEffect, onZapCompleted, shouldPlayMainLoop, animationVariant, shoulderTrillSpeed]);
 
   useEffect(() => {
     const audioElement = audioRef.current; if (!audioElement) return;
@@ -187,7 +223,9 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
             overflow: 'visible' 
         }}
       >
-        <MyActualLogo width="100%" height="100%" /> 
+        <MyActualLogo width="100%" height="100%" 
+          isParticleBursting={false} // CSS class not used for #Inner-background hiding
+        /> 
       </div>
       <audio ref={audioRef} />
       {(audioUrl || (playMainAnimations && playButtonText !== "")) && ( 
@@ -197,7 +235,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
             variant="secondary" 
             className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-lg px-6 py-3 text-base rounded-md"
         >
-          {shouldPlayMainAnimationsState ? `Pause ${playMainAnimations && !audioUrl ? 'Test Animation' : 'AI Narration'}` : playButtonText}
+          {shouldPlayMainLoop ? `Pause ${playMainAnimations && !audioUrl ? 'Test Animation' : 'AI Narration'}` : playButtonText}
         </Button>
       )}
       {showLoadingText && audioUrl && !isAudioLoaded && <p className="text-sm text-primary animate-pulse mt-2">Preparing audio...</p>}

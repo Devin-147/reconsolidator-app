@@ -1,109 +1,84 @@
-// api/get-user-status.ts
-import { createClient } from '@supabase/supabase-js';
-import type { VercelRequest, VercelResponse } from '@vercel/node'; // Import Vercel types
+// FILE: api/get-user-status.ts (Functional Version)
 
-// --- Initialize Supabase Admin Client ---
-// We use the Service Role Key here to bypass RLS for reading user status.
-// Ensure SUPABASE_URL and SUPABASE_SERVICE_KEY are set in your environment variables.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+const supabaseUrl_env = process.env.SUPABASE_URL;
+const supabaseServiceKey_env = process.env.SUPABASE_SERVICE_KEY;
+
+let supabaseAdmin: SupabaseClient | null = null;
 let initError: string | null = null;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  initError = 'Internal server configuration error: Missing Supabase URL or Service Key.';
-  console.error('API Error in get-user-status: Missing SUPABASE_URL or SUPABASE_SERVICE_KEY environment variables');
+if (typeof supabaseUrl_env !== 'string' || supabaseUrl_env.trim() === '') {
+  initError = 'API Config Error: SUPABASE_URL env variable is missing or not a string for get-user-status.';
+  console.error(`[API get-user-status] ${initError}`);
+} else if (typeof supabaseServiceKey_env !== 'string' || supabaseServiceKey_env.trim() === '') {
+  initError = 'API Config Error: SUPABASE_SERVICE_KEY env variable is missing or not a string for get-user-status.';
+  console.error(`[API get-user-status] ${initError}`);
 } else {
   try {
-    supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-            // Avoid persisting sessions on the server-side for the service key client
-            persistSession: false,
-            autoRefreshToken: false
-        }
+    supabaseAdmin = createClient(supabaseUrl_env, supabaseServiceKey_env, {
+        auth: { persistSession: false, autoRefreshToken: false }
     });
-  } catch (e) {
-      initError = 'Failed to initialize Supabase admin client.';
-      console.error('API Error initializing Supabase admin client:', e);
+  } catch (e: any) {
+      initError = `Failed to initialize Supabase admin client for get-user-status: ${e.message}`;
+      console.error('[API get-user-status] Supabase Client Init Catch Error:', e);
   }
 }
-// --- End Initialization ---
-
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-
-  // Check if client initialization failed earlier
   if (initError || !supabaseAdmin) {
-    return res.status(500).json({ error: initError || 'Supabase admin client not available.' });
+    console.error("[API get-user-status] Handler error: Supabase client not available due to init error.", initError);
+    return res.status(500).json({ error: initError || 'Supabase admin client setup failed on server.' });
   }
 
-  // Allow only GET requests for fetching status
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).end('Method Not Allowed');
   }
 
-  // Get email from query parameter
-  const email = typeof req.query.email === 'string' ? req.query.email : undefined;
-
-  // Basic Email Validation
-  if (!email || !/\S+@\S+\.\S+/.test(email)) {
+  const emailFromQuery = req.query.email;
+  if (typeof emailFromQuery !== 'string' || !/\S+@\S+\.\S+/.test(emailFromQuery)) {
     return res.status(400).json({ error: 'Valid email parameter is required.' });
   }
-
+  const email = emailFromQuery.trim();
 
   try {
-    // Query Supabase 'users' table using the ADMIN client (bypasses RLS)
-    const { data: user, error: dbError } = await supabaseAdmin // <-- USE ADMIN CLIENT
-      .from('users') // Your table name
-      .select('email, has_paid, status') // Select relevant columns
+    const { data: user, error: dbError } = await supabaseAdmin
+      .from('users')
+      .select('email, has_paid, status, access_level')
       .eq('email', email)
-      .maybeSingle(); // Get one user or null
+      .maybeSingle();
 
     if (dbError) {
-      // Log Supabase-specific errors
-      console.error(`Supabase error fetching status for ${email}:`, dbError);
-      // Throw the error to be caught by the generic catch block
-      throw new Error(`Database query failed: ${dbError.message}`);
+      console.error(`[API get-user-status] Supabase DB error for ${email}:`, dbError);
+      throw new Error(`Database query failed: ${dbError.message} (Code: ${dbError.code})`);
     }
 
     if (!user) {
-      // User genuinely not found in database
-      console.log(`User status check: Email ${email} not found.`);
-      // Return a specific status indicating not found, but request was successful
-      return res.status(200).json({ isAuthenticated: false, userStatus: 'not_found' }); // Changed status to 'not_found'
+      return res.status(200).json({ isAuthenticated: false, userStatus: 'not_found', accessLevel: 'not_found' });
     }
+    
+    let derivedUserStatus: 'paid' | 'trial' | 'none' | 'not_found' = 'none'; 
+    if (user.has_paid === true || user.status === 'paid') { derivedUserStatus = 'paid'; }
+    else if (user.status === 'trial_requested' || user.status === 'active_trial' || user.status === 'trial') { derivedUserStatus = 'trial'; }
+    
+    let userAccessLevelFromDB: 'trial' | 'standard_lifetime' | 'premium_lifetime' | 'none' | 'not_found' = 
+        (user.access_level as any === 'paid' && user.has_paid === true) ? 'premium_lifetime' : // Handle old 'paid' as 'premium_lifetime'
+        (user.access_level === 'standard_lifetime' || user.access_level === 'premium_lifetime' || user.access_level === 'trial') ? user.access_level : 'trial';
 
-    // Determine status based on database values
-    const hasPaid = user.has_paid === true;
-    const hasTrialAccess = user.status === 'trial_requested' || user.status === 'active_trial' || hasPaid; // Assuming these statuses grant access
-
-    let userStatus = 'none'; // Default status if no specific condition met
-
-    if (hasPaid) {
-      userStatus = 'paid';
-    } else if (hasTrialAccess) {
-      // Could differentiate between requested and active trial if needed
-      userStatus = 'trial';
+    if (!['trial', 'standard_lifetime', 'premium_lifetime', 'none', 'not_found'].includes(userAccessLevelFromDB)) {
+        userAccessLevelFromDB = 'trial';
     }
-     // Add more conditions here if you have other statuses like 'expired', 'cancelled' etc.
+    
+    if (userAccessLevelFromDB === 'standard_lifetime' || userAccessLevelFromDB === 'premium_lifetime') { derivedUserStatus = 'paid'; }
+    else if (userAccessLevelFromDB === 'trial') { derivedUserStatus = 'trial';}
 
+    res.status(200).json({ isAuthenticated: true, userStatus: derivedUserStatus, accessLevel: userAccessLevelFromDB });
 
-    console.log(`User status check for ${email}: Found - Status=${userStatus}, Paid=${hasPaid}`);
-    // Return status - isAuthenticated reflects finding the user record
-    res.status(200).json({ isAuthenticated: true, userStatus: userStatus });
-
-  } catch (error: unknown) { // Generic catch block
-    console.error(`Error processing /api/get-user-status for ${email}:`, error);
-
-    let errorMessage = 'An unknown server error occurred.';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    }
-    // Return 500 for internal errors
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown server error.';
+    console.error(`[API get-user-status] Catch block error for ${email}:`, errorMessage, error);
     res.status(500).json({ error: `Server error: ${errorMessage}` });
   }
 }

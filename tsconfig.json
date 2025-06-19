@@ -1,3 +1,4 @@
+// FILE: tsconfig.json
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -5,11 +6,10 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "moduleResolution": "node16", 
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "noEmit": true, 
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": false,
@@ -21,6 +21,7 @@
     }
   },
   "include": ["src", "api"], 
+  // "references": [{ "path": "./tsconfig.node.json" }], // <<< REMOVED THIS LINE
   "exclude": [
     "node_modules",
     "dist",

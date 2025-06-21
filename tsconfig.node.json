@@ -1,0 +1,18 @@
+// FILE: tsconfig.node.json
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler", // Or "node16", "nodenext" - bundler is often recommended for Vite config files
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noEmit": true, // Usually true for .node.json as Vite/ESbuild handles emit
+    "types": ["node"] // Add node types for things like process, __dirname etc.
+  },
+  "include": [
+    "vite.config.ts",
+    "api/**/*.ts" // Include your API route files if they are TypeScript and run in Node
+    // Add any other Node-specific TypeScript files here
+  ]
+}

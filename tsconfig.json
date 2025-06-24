@@ -4,21 +4,26 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "NodeNext",
+    "module": "ESNext",          // Works well with "bundler" resolution
     "skipLibCheck": true,
-    "moduleResolution": "node16",
-    "allowImportingTsExtensions": true, 
-    "resolveJsonModule": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler", // <<< REVERTED TO bundler
+    // "allowImportingTsExtensions": true, // Not strictly needed with bundler + Vite
+    "resolveJsonModule": true,    // Should be fine with module: ESNext and bundler
     "isolatedModules": true,
-    // "noEmit": true, // Replaced by emitDeclarationOnly
-    "emitDeclarationOnly": true, // <<< ADDED THIS
-    "declaration": true,         // Keep for declaration files
-    "declarationMap": true,      // Keep for source maps for declarations
+    "emitDeclarationOnly": true,  // TSC does type checking & .d.ts, Vite does .js emit
+    "declaration": true,
+    "declarationMap": true,
     "jsx": "react-jsx",
+
+    /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": true,       // Keep these for good practice
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+
+    /* Path Aliases */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

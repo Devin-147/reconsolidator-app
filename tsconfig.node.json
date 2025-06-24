@@ -3,19 +3,15 @@
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,
-    "module": "ESNext",             // Can remain ESNext for Node tooling files
-    "moduleResolution": "node16",   // <<< CHANGED (or "nodenext" or "bundler")
+    "module": "ESNext",
+    "moduleResolution": "bundler", // <<< CHANGED for consistency
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    // "noEmit": true,              // <<< REMOVED/Commented out
+    // "noEmit": true, // Keep commented, emitDeclarationOnly in main tsconfig is better
     "types": ["node"] 
   },
   "include": [
-    "vite.config.ts"
-    // "api/**/*.ts" // <<< REMOVE API from here if main tsconfig handles it for Vercel build
-                   // If Vercel specifically uses tsconfig.node.json for API functions, 
-                   // then it should be included here, and NOT in the main tsconfig's "include".
-                   // For Vercel, API routes are typically handled by the main build process.
-                   // Let's assume main tsconfig's "include": ["api"] is sufficient.
+    "vite.config.ts",
+    "api/**/*.ts" 
   ]
 }

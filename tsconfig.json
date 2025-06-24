@@ -4,15 +4,16 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "NodeNext",         // <<< CHANGED from ESNext
+    "module": "NodeNext",
     "skipLibCheck": true,
-    "moduleResolution": "node16", // Or "nodenext", compatible with module: "NodeNext"
-    "allowImportingTsExtensions": true, // Keep this for .ts imports in .ts files
+    "moduleResolution": "node16",
+    "allowImportingTsExtensions": true, 
     "resolveJsonModule": true,
-    "isolatedModules": true,       // Good for bundlers like Vite
-    // "noEmit": true,             // <<< REMOVED/Commented out, Vercel handles emit. TSC only checks.
-    "declaration": true,           // <<< ADDED (helps with composite projects if referenced)
-    "declarationMap": true,        // <<< ADDED (helps with composite projects if referenced)
+    "isolatedModules": true,
+    // "noEmit": true, // Replaced by emitDeclarationOnly
+    "emitDeclarationOnly": true, // <<< ADDED THIS
+    "declaration": true,         // Keep for declaration files
+    "declarationMap": true,      // Keep for source maps for declarations
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
@@ -24,5 +25,5 @@
     }
   },
   "include": ["src", "api"], 
-  "references": [{ "path": "./tsconfig.node.json" }] // Keep reference for now
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

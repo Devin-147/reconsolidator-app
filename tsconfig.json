@@ -4,30 +4,25 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
+    "module": "NodeNext",         // <<< CHANGED from ESNext
     "skipLibCheck": true,
-
-    /* Bundler mode */
-    // "moduleResolution": "bundler", // This was causing issues with resolveJsonModule
-    "moduleResolution": "node16",  // <<< CHANGED TO node16
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,     // This can now be true
-    "isolatedModules": true,
-    "noEmit": true,
+    "moduleResolution": "node16", // Or "nodenext", compatible with module: "NodeNext"
+    "allowImportingTsExtensions": true, // Keep this for .ts imports in .ts files
+    "resolveJsonModule": true,
+    "isolatedModules": true,       // Good for bundlers like Vite
+    // "noEmit": true,             // <<< REMOVED/Commented out, Vercel handles emit. TSC only checks.
+    "declaration": true,           // <<< ADDED (helps with composite projects if referenced)
+    "declarationMap": true,        // <<< ADDED (helps with composite projects if referenced)
     "jsx": "react-jsx",
-
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-    /* Path Aliases */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "api"], // Ensure 'api' is included if you have TS files there
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src", "api"], 
+  "references": [{ "path": "./tsconfig.node.json" }] // Keep reference for now
 }

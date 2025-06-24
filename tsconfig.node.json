@@ -1,17 +1,21 @@
 // FILE: tsconfig.node.json
+// Corrected to allow declaration emit for composite builds
+
 {
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "bundler", // Or node16/nodenext
+    "moduleResolution": "bundler", // Or "node16" / "nodenext"
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noEmit": true, // This config is for IDE checking of vite.config.ts, etc.
+    // "noEmit": true, // <<< REMOVED THIS LINE
+    "declaration": true,           // <<< ADDED THIS LINE
+    "declarationMap": true,        // <<< ADDED THIS LINE
     "types": ["node"] 
   },
   "include": [
     "vite.config.ts"
-    // "api/**/*.ts" // <<< REMOVED api from here
+    // "api/**/*.ts" // api folder is handled by the main tsconfig.json
   ]
 }

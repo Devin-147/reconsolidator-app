@@ -4,31 +4,28 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",          // Works well with "bundler" resolution
+    "module": "ESNext",        // ESNext is fine with "bundler" or for Vite's direct handling
     "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler", // <<< REVERTED TO bundler
-    // "allowImportingTsExtensions": true, // Not strictly needed with bundler + Vite
-    "resolveJsonModule": true,    // Should be fine with module: ESNext and bundler
+    "moduleResolution": "bundler", // Recommended for Vite
+    // "allowImportingTsExtensions": true, // Vite handles .ts imports without this if moduleResolution is bundler
+    "resolveJsonModule": true,
     "isolatedModules": true,
-    "emitDeclarationOnly": true,  // TSC does type checking & .d.ts, Vite does .js emit
-    "declaration": true,
-    "declarationMap": true,
+    "noEmit": true,               // <<< REINSTATED: tsc should only type-check
+    // "declaration": false,      // <<< Can be removed if noEmit is true
+    // "declarationMap": false,   // <<< Can be removed if noEmit is true
     "jsx": "react-jsx",
-
-    /* Linting */
     "strict": true,
-    "noUnusedLocals": true,       // Keep these for good practice
+    "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-    /* Path Aliases */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "api"], 
+  "include": [
+    "src", // For your React frontend code
+    "api"  // For your Vercel serverless functions
+  ], 
   "references": [{ "path": "./tsconfig.node.json" }]
 }

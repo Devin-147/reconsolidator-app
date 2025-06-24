@@ -4,14 +4,14 @@
     "composite": true,
     "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "bundler", // <<< CHANGED for consistency
+    "moduleResolution": "bundler", // Or node16/nodenext
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    // "noEmit": true, // Keep commented, emitDeclarationOnly in main tsconfig is better
+    "noEmit": true, // This config is for IDE checking of vite.config.ts, etc.
     "types": ["node"] 
   },
   "include": [
-    "vite.config.ts",
-    "api/**/*.ts" 
+    "vite.config.ts"
+    // "api/**/*.ts" // <<< REMOVED api from here
   ]
 }

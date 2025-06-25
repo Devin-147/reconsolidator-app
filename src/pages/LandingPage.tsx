@@ -137,7 +137,7 @@ const LandingPage = () => {
          <section className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
             <h2 className="text-2xl md:text-3xl font-semibold">Start for Free, Then Unlock Lifetime Access for $47</h2>
             <p className="text-md text-muted-foreground">Try Treatment 1 for Free: Experience the power of memory reconsolidation at no cost.</p>
-            <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. No refunds—because you can test drive it for free before deciding to buy!</p>
+            <p className="text-md text-muted-foreground">Lifetime Access for $47: Get all 5 treatments. Rewrite other memories to target so you can let go of more past events! </p>
          </section>
 
         {/* --- Why Choose Section --- */}

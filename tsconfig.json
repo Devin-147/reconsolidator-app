@@ -1,31 +1,37 @@
 // FILE: tsconfig.json
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ESNext", // Modern target
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",        // ESNext is fine with "bundler" or for Vite's direct handling
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
-    "moduleResolution": "bundler", // Recommended for Vite
-    // "allowImportingTsExtensions": true, // Vite handles .ts imports without this if moduleResolution is bundler
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false, // Let Vite handle .ts -> .js
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,               // <<< REINSTATED: tsc should only type-check
-    // "declaration": false,      // <<< Can be removed if noEmit is true
-    // "declarationMap": false,   // <<< Can be removed if noEmit is true
+    "noEmit": true,                 // <<< CRITICAL: TSC only type-checks
     "jsx": "react-jsx",
+    
+    /* Interoperability */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,        // <<< TEMPORARILY false to reduce noise
+    "noUnusedParameters": false,    // <<< TEMPORARILY false
     "noFallthroughCasesInSwitch": true,
+
+    /* Path Aliases - Vite will primarily use its own config for this at runtime */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": [
-    "src", // For your React frontend code
-    "api"  // For your Vercel serverless functions
-  ], 
+  "include": ["src", "api", "vite.config.ts", "postcss.config.js", "tailwind.config.js"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

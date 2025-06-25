@@ -19,7 +19,7 @@ let globalInitError: string | null = null;
 
 try {
   if (!stripeSecretKey) throw new Error('STRIPE_SECRET_KEY missing.');
-  stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-04-10' }); // Consistent API version
+  stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-05-28.basil' }); // Consistent API version
   if (!webhookSigningSecret) throw new Error('STRIPE_WEBHOOK_SECRET missing.');
   if (!resendApiKey) throw new Error('RESEND_API_KEY missing.');
   resend = new Resend(resendApiKey);

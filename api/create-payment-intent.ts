@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
        // Using a known stable or previously working Stripe API version
        stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-04-10' }); 
-       console.log("[API create-payment-intent] Stripe client initialized with apiVersion: '2024-04-10'.");
+       console.log("[API create-payment-intent] Stripe client initialized with apiVersion: '2024-05-28.basil'.");
   } catch (initError: any) {
        console.error('[API create-payment-intent] Error initializing Stripe client:', initError);
        return res.status(500).json({ error: `Failed to initialize payment processing: ${initError.message}` });

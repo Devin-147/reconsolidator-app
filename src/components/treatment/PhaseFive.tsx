@@ -1,5 +1,5 @@
 // FILE: src/components/treatment/PhaseFive.tsx
-// Correctly passes animationVariant to AnimatedLogoWithAudio for reversed scripts.
+// Corrected typo for reversedItemIndex and contains all logic.
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ import { type PredictionError } from "@/components/PredictionErrorSelector";
 import { NarrationRecorder } from "@/components/NarrationRecorder";
 import { useRecording } from "@/contexts/RecordingContext";
 import { toast } from "sonner";
-import { useAuth, UserAccessLevel } from "@/contexts/AuthContext";
+import { useAuth, UserAccessLevel } from "@/contexts/AuthContext"; // UserAccessLevel not strictly needed here if only using accessLevel
 import AnimatedLogoWithAudio from "@/components/AnimatedLogoWithAudio";
-import MyActualLogo from "@/components/MyActualLogo";
+import MyActualLogo from "@/components/MyActualLogo"; // MyActualLogo not used in this version, can be removed if not needed for other states
 
 interface PhaseFiveProps {
   isCurrentPhase: boolean;
@@ -80,12 +80,14 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
         toast.error("Cannot generate reversed scripts: Base memories or full prediction error list is missing."); 
         return;
     }
+
     console.log(`PhaseFive (T${treatmentNumber}): Generating 8 reversed scripts from original indices:`, indicesForReversal);
     const newReversedItems: ReversedScriptItem[] = [];
     let generationOk = true;
+
     indicesForReversal.forEach(originalIndex => {
       if (originalIndex < 0 || originalIndex >= selectedPredictionErrors.length) {
-        console.error(`PhaseFive: Invalid originalIndex ${originalIndex}.`);
+        console.error(`PhaseFive: Invalid originalIndex ${originalIndex} for selectedPredictionErrors of length ${selectedPredictionErrors.length}.`);
         generationOk = false; return;
       }
       const pe = selectedPredictionErrors[originalIndex];
@@ -94,60 +96,75 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
           generationOk = false; return; 
       }
       newReversedItems.push({
-        originalIndex, title: pe.title, 
+        originalIndex,
+        title: pe.title, 
         reversedText: `Reverse Script (Under 7 seconds):\n${memory2}\nThen, ${pe.description}\nThen, ${sessionTargetEvent}\nThen, ${memory1}`,
-        aiAudioUrl: null, isLoadingAi: false, aiError: null,
+        aiAudioUrl: null,
+        isLoadingAi: false,
+        aiError: null,
       });
     });
+    
     if (!generationOk || newReversedItems.length !== 8) {
-        toast.error("Error: Could not generate all 8 reversed scripts.");
+        toast.error("Error: Could not generate all 8 reversed scripts due to data issues with selected items.");
         setReversedScriptObjects([]); return;
     }
+
     setReversedScriptObjects(newReversedItems);
     setUserRecordedReverseAudios(Array(newReversedItems.length).fill(null));
     setIsSelectionComplete(true);
-    toast.success("8 Reverse scripts prepared.");
+    toast.success("8 Reverse scripts prepared. Please record each one quickly.");
     if (accessLevel === 'premium_lifetime') {
       toast.info("AI narrations for reversed scripts will load automatically.");
     }
   }, [indicesForReversal, memory1, memory2, sessionTargetEvent, selectedPredictionErrors, treatmentNumber, accessLevel]);
 
-  const triggerSingleReverseAiLoad = useCallback(async (reversedItemIndex: number) => {
-    if (!reversedScriptObjects || reversedItemIndex < 0 || reversedItemIndex >= reversedScriptObjects.length) return;
+  const triggerSingleReverseAiLoad = useCallback(async (reversedItemIndex: number) => { // Parameter is reversedItemIndex
+    if (!reversedScriptObjects || reversedItemIndex < 0 || reversedItemIndex >= reversedScriptObjects.length) {
+        console.error(`PhaseFive: Invalid reversedItemIndex (${reversedItemIndex}) or empty reversedScriptObjects for AI load.`);
+        return;
+    }
     const itemToLoad = reversedScriptObjects[reversedItemIndex];
-    if (!itemToLoad || itemToLoad.isLoadingAi || itemToLoad.aiAudioUrl || itemToLoad.aiError || !userIdForApi) return;
+    if (!itemToLoad || itemToLoad.isLoadingAi || itemToLoad.aiAudioUrl || itemToLoad.aiError || !userIdForApi) {
+        return;
+    }
     setReversedScriptObjects(prev => prev.map((item, i) => i === reversedItemIndex ? {...item, isLoadingAi: true, aiError: null} : item));
     try {
+      console.log(`PhaseFive (T${treatmentNumber}): Requesting AI narration for REVERSED script: "${itemToLoad.title}" (Orig. PE Index: ${itemToLoad.originalIndex}).`);
       const response = await fetch('/api/generate-narration-audio', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: itemToLoad.reversedText, userId: userIdForApi, treatmentNumber, narrativeIndex: `reverse-${itemToLoad.originalIndex}` }),
       });
-      if (!response.ok) { let eD = `API Error ${response.status}`; try {const eJ=await response.json();eD=eJ.error||eD;}catch{} throw new Error(eD); }
+      if (!response.ok) { 
+        let eD = `API Error ${response.status}`; 
+        try { const eJ=await response.json(); eD=eJ.error||eD; } catch {} 
+        throw new Error(eD); 
+      }
       const data = await response.json();
-      if (!data.audioUrl) throw new Error("No audio URL from API (reversed).");
+      if (!data.audioUrl) throw new Error("No audio URL from API for reversed script.");
       setReversedScriptObjects(prev => prev.map((item, i) => i === reversedItemIndex ? {...item, aiAudioUrl: data.audioUrl, isLoadingAi: false} : item));
     } catch (error: any) {
-      setReversedScriptObjects(prev => prev.map((item, i) => i === reversedItemIndex ? {...item, aiError: error.message || "AI Load Fail.", isLoadingAi: false} : item));
-      toast.error(`AI Error for "${itemToLoad.title}": ${error.message}`);
+      setReversedScriptObjects(prev => prev.map((item, i) => i === reversedItemIndex ? {...item, aiError: error.message || "Failed to load AI.", isLoadingAi: false} : item));
+      toast.error(`Error loading AI for "${itemToLoad.title}": ${error.message || "Unknown error"}`);
     }
   }, [reversedScriptObjects, userIdForApi, treatmentNumber]);
 
   useEffect(() => {
     if (isSelectionComplete && accessLevel === 'premium_lifetime' && reversedScriptObjects.length > 0) {
-      reversedScriptObjects.forEach((rsItem, reversedItemIndex) => {
+      reversedScriptObjects.forEach((rsItem, rIdx) => { // rIdx is the correct loop variable here
         if (!rsItem.isLoadingAi && !rsItem.aiAudioUrl && !rsItem.aiError) {
-          triggerSingleReverseAiLoad(reversedItemIndex);
+          triggerSingleReverseAiLoad(rIdx); // Use rIdx
         }
       });
     }
-  }, [isSelectionComplete, accessLevel, reversedScriptObjects, triggerSingleReverseAiLoad]);
+  }, [isSelectionComplete, accessLevel, reversedScriptObjects, triggerSingleReverseAiLoad, treatmentNumber]);
 
   const handleUserReverseNarrationComplete = useCallback((reversedItemIndex: number, audioUrl: string | null) => {
     setUserRecordedReverseAudios(prev => {
         const newUrls = [...prev];
         if (reversedItemIndex >= 0 && reversedItemIndex < newUrls.length) {
-             if (newUrls[reversedScriptItemIndex]?.startsWith('blob:')) URL.revokeObjectURL(newUrls[reversedScriptItemIndex]!);
-             newUrls[reversedScriptItemIndex] = audioUrl;
+             if (newUrls[reversedItemIndex]?.startsWith('blob:')) URL.revokeObjectURL(newUrls[reversedItemIndex]!);
+             newUrls[reversedItemIndex] = audioUrl;
         }
         return newUrls;
     });
@@ -198,7 +215,7 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
         <div className="space-y-4">
           <h4 className="text-base font-medium text-card-foreground">Record/Listen to Reversed Narratives:</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {reversedScriptObjects.map((rsItem, reversedItemIndex) => ( // reversedItemIndex is 0-7
+            {reversedScriptObjects.map((rsItem, reversedItemIndex) => ( // This is the correct map variable name
               <div key={rsItem.originalIndex} className="p-3 bg-black/10 rounded-lg space-y-2 border border-border/50">
                  <p className="text-xs text-muted-foreground font-medium">
                    Reverse of: <span className="italic text-primary">{rsItem.title}</span> 
@@ -215,14 +232,16 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
                     <div className="mt-2 pt-2 border-t border-primary/30 space-y-2">
                       <h5 className="text-xs font-semibold text-primary">AI Version (Premium):</h5>
                       {rsItem.isLoadingAi && <div className="flex items-center text-sm text-primary animate-pulse"><Loader2 className="mr-1 h-3 w-3 animate-spin"/>Loading AI audio...</div>}
+                      {/* Corrected variable name for retry button */}
                       {rsItem.aiError && !rsItem.isLoadingAi && <div className="text-xs text-red-500">{rsItem.aiError} <Button onClick={() => triggerSingleReverseAiLoad(reversedItemIndex)} size="sm" variant="link" className="p-0 h-auto text-xs">Retry</Button></div>}
+                      {/* Corrected variable name for animationVariant */}
                       {rsItem.aiAudioUrl && !rsItem.isLoadingAi && !rsItem.aiError && 
                         <AnimatedLogoWithAudio 
                             audioUrl={rsItem.aiAudioUrl} 
                             width={100} 
                             height={100} 
                             playButtonText={`Play AI Reverse ${reversedItemIndex+1}`} 
-                            animationVariant={reversedItemIndex + 1} // Pass variant (1-8 for reversed scripts)
+                            animationVariant={reversedItemIndex + 1} 
                         />
                       }
                     </div>

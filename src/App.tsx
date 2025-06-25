@@ -54,7 +54,6 @@ function App() {
                 <Route path="/treatment-5" element={<ProtectedRoute requiredStatus='paid'><Treatment5 /></ProtectedRoute>} />
                 <Route path="/upgrade" element={<ProtectedRoute requiredStatus='trial'><PaymentPage /></ProtectedRoute>} />
                 <Route path="/follow-up" element={<ProtectedRoute requiredStatus='paid'><FollowUp /></ProtectedRoute>} />
-                {/* LogoTestLab route removed */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div> 

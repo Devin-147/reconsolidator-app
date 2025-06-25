@@ -1,37 +1,37 @@
 // FILE: tsconfig.json
 {
   "compilerOptions": {
-    "target": "ESNext", // Modern target
+    "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-
-    /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": false, // Let Vite handle .ts -> .js
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,                 // <<< CRITICAL: TSC only type-checks
+    "noEmit": false,                // <<< CHANGED: Allow TSC to check and prepare for declaration emit
+    "emitDeclarationOnly": true,    // <<< ENSURE TRUE: Only .d.ts files
+    "declaration": true,
+    "declarationMap": true,
     "jsx": "react-jsx",
-    
-    /* Interoperability */
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-
-    /* Linting */
     "strict": true,
-    "noUnusedLocals": false,        // <<< TEMPORARILY false to reduce noise
-    "noUnusedParameters": false,    // <<< TEMPORARILY false
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-
-    /* Path Aliases - Vite will primarily use its own config for this at runtime */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "api", "vite.config.ts", "postcss.config.js", "tailwind.config.js"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": [
+    "src", 
+    "api", 
+    "vite.config.ts",       // <<< Main tsconfig now responsible for vite.config.ts
+    "postcss.config.js",    // Include other JS config files if they import .ts
+    "tailwind.config.js"
+  ]
+  // "references": [{ "path": "./tsconfig.node.json" }] // <<< REMOVED REFERENCES
 }

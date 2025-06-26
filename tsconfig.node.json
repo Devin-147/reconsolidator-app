@@ -1,13 +1,13 @@
 // FILE: tsconfig.node.json
 {
   "compilerOptions": {
-    "composite": false, // No longer a build reference target
+    "composite": false, 
     "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "NodeNext", // Match main or use "bundler"
+    "moduleResolution": "bundler", 
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noEmit": true,
+    "noEmit": true, 
     "types": ["node"]
   },
   "include": [

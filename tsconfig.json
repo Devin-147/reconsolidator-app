@@ -1,17 +1,20 @@
 // FILE: tsconfig.json
+// Reverting to bundler mode, which is more robust for Vite's import resolution
+// and path aliases in the tsc step of Vercel build.
 {
   "compilerOptions": {
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "module": "NodeNext",            // <<< CHANGED to NodeNext
+    "module": "ESNext",
     "skipLibCheck": true,
 
-    "moduleResolution": "NodeNext",   // <<< Stays NodeNext
-    "allowImportingTsExtensions": true, 
+    /* Bundler mode */
+    "moduleResolution": "bundler",         // <<< KEY CHANGE BACK TO bundler
+    "allowImportingTsExtensions": false,  // Not needed with bundler, Vite handles it
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,               
+    "noEmit": true,                       // TSC only type-checks
     "jsx": "react-jsx",
     
     "esModuleInterop": true,
@@ -34,6 +37,7 @@
     "vite.config.ts",
     "postcss.config.js",
     "tailwind.config.js",
-    "tsconfig.node.json" 
+    "tsconfig.node.json" // Still include for IDE to know about it
   ]
+  // No "references" array for the build
 }

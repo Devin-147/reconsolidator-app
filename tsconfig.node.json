@@ -1,21 +1,16 @@
 // FILE: tsconfig.node.json
-// This file is now primarily for IDE tooling and type-checking Node-specific files.
-// It is NOT referenced by the main tsconfig.json for the Vercel build process.
 {
   "compilerOptions": {
-    // "composite": true, // Can be removed if not referenced
+    "composite": false, // No longer a build reference target
     "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "bundler", // Or NodeNext
+    "moduleResolution": "NodeNext", // Match main or use "bundler"
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noEmit": true, // This config is for IDE checking of vite.config.ts, etc.
-    "types": ["node"] 
+    "noEmit": true,
+    "types": ["node"]
   },
   "include": [
-    "vite.config.ts",
-    "postcss.config.js", // If it were .ts
-    "tailwind.config.js" // If it were .ts
-    // Add other Node-specific config files that are TypeScript
+    "vite.config.ts"
   ]
 }

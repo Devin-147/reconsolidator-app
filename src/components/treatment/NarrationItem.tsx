@@ -1,5 +1,5 @@
 // FILE: src/components/treatment/NarrationItem.tsx
-// Ensures animationVariant is passed to AnimatedLogoWithAudio for 11 distinct Zaps.
+// Adds missing props (forceIsPlaying, onTogglePlay) to AnimatedLogoWithAudio call.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,100 +7,68 @@ import { NarrationRecorder } from "@/components/NarrationRecorder";
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
 import { useAuth, UserAccessLevel } from '@/contexts/AuthContext';
+import { useRecording } from '@/contexts/RecordingContext'; 
 import AnimatedLogoWithAudio from '@/components/AnimatedLogoWithAudio';
 import { Loader2, Lock } from 'lucide-react'; 
 import MyActualLogo from '@/components/MyActualLogo'; 
 
 interface NarrationItemProps { 
   script: string;
-  index: number; // This is 0-10, used for animationVariant (index + 1)
+  index: number; 
   predictionErrorTitle: string; 
   onRecordingComplete: (index: number, audioUrl: string | null) => void;
   existingAudioUrl: string | null;
   treatmentNumber: number;
-  autoLoadAiNarration: boolean; 
 }
 
 export const NarrationItem = ({
   script, index, predictionErrorTitle,
-  onRecordingComplete, existingAudioUrl, treatmentNumber, autoLoadAiNarration
+  onRecordingComplete, existingAudioUrl, treatmentNumber
 }: NarrationItemProps) => {
   const { accessLevel, userEmail } = useAuth(); 
+  const { currentlyPlayingAiIndex, setCurrentlyPlayingAiIndex } = useRecording(); 
   const userIdForApi = userEmail; 
   const navigate = useNavigate();
 
   const [aiAudioUrl, setAiAudioUrl] = useState<string | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false); 
   const [aiAudioError, setAiAudioError] = useState<string | null>(null);
-  const [showTeaserReady, setShowTeaserReady] = useState(false);
+
+  const isThisAiNarrationPlaying = currentlyPlayingAiIndex === index;
 
   const handleUserRecordingCompletion = (audioUrl: string | null) => onRecordingComplete(index, audioUrl);
 
-  const generateActualAiNarration = useCallback(async () => {
-    if (!userIdForApi || !script) { 
-        setAiAudioError("Internal error: User/script info missing."); 
-        console.error(`NarrationItem ${index + 1}: Cannot generate AI narration - missing userId or script.`);
-        return; 
-    }
-    if (isLoadingAi || aiAudioUrl || aiAudioError) {
-        console.log(`NarrationItem ${index + 1} (${predictionErrorTitle}): Skipping AI narration load. Status: isLoading=${isLoadingAi}, hasUrl=${!!aiAudioUrl}, hasError=${!!aiAudioError}`);
-        return;
-    }
-
-    setIsLoadingAi(true); 
-    setAiAudioError(null); 
-    
+  const handleLoadAiNarration = useCallback(async () => {
+    if (!userIdForApi || !script) { setAiAudioError("Internal error."); return; }
+    if (isLoadingAi || aiAudioUrl) return;
+    setIsLoadingAi(true); setAiAudioError(null); 
     try {
-      console.log(`NarrationItem ${index + 1}: Requesting REAL AI narration for T${treatmentNumber} (${predictionErrorTitle}). Script (start): "${script.substring(0,30)}..."`);
       const response = await fetch('/api/generate-narration-audio', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: script, userId: userIdForApi, treatmentNumber, narrativeIndex: index }),
       });
-      if (!response.ok) { 
-        let eD = `API Error ${response.status}`; 
-        try { const eJ = await response.json(); eD = eJ.error || eD; } catch {} 
-        console.error(`NarrationItem ${index + 1} (${predictionErrorTitle}): API call failed - ${eD}`);
-        throw new Error(eD); 
-      }
+      if (!response.ok) { let eD = `API Error ${response.status}`; try { const eJ = await response.json(); eD = eJ.error || eD; } catch {} throw new Error(eD); }
       const data = await response.json();
-      if (!data.audioUrl) {
-        console.error(`NarrationItem ${index + 1} (${predictionErrorTitle}): No audio URL in API response. Data:`, data);
-        throw new Error("No audio URL from API for AI Narration " + (index+1));
-      }
+      if (!data.audioUrl) throw new Error("No audio URL from API.");
       setAiAudioUrl(data.audioUrl); 
-      console.log(`AI Narration ${index + 1} (${predictionErrorTitle}) ready! URL: ${data.audioUrl}`);
+      toast.success(`AI Narration for "${predictionErrorTitle}" is ready!`);
     } catch (error: any) { 
       const errorMsg = error.message || `Failed to load AI for "${predictionErrorTitle}".`;
-      setAiAudioError(errorMsg); 
-      toast.error(errorMsg);
-      console.error(`NarrationItem ${index + 1} (${predictionErrorTitle}): Catch block error loading AI narration - ${errorMsg}`);
-    } finally { 
-      setIsLoadingAi(false); 
-    }
-  }, [script, index, treatmentNumber, userIdForApi, isLoadingAi, aiAudioUrl, aiAudioError, predictionErrorTitle, accessLevel]); 
+      setAiAudioError(errorMsg); toast.error(errorMsg);
+    } finally { setIsLoadingAi(false); }
+  }, [script, index, treatmentNumber, userIdForApi, isLoadingAi, aiAudioUrl, predictionErrorTitle]); 
 
-  useEffect(() => {
-    if (autoLoadAiNarration && !aiAudioUrl && !isLoadingAi && !aiAudioError) { 
-      if (accessLevel === 'premium_lifetime') {
-        console.log(`NarrationItem ${index + 1} (${predictionErrorTitle}): User is PREMIUM. Auto-loading REAL AI narration.`);
-        generateActualAiNarration();
-      } else if (accessLevel === 'trial' || accessLevel === 'standard_lifetime') {
-        console.log(`NarrationItem ${index + 1} (${predictionErrorTitle}): Non-premium (${accessLevel}). Simulating AI load.`);
-        setIsLoadingAi(true); setShowTeaserReady(false);
-        const timer = setTimeout(() => { 
-          setIsLoadingAi(false); 
-          setShowTeaserReady(true); 
-          console.log(`NarrationItem ${index + 1} (${predictionErrorTitle}): Simulated load complete for non-premium user.`);
-        }, 1000 + (index * 200) + Math.random() * 300); 
-        return () => clearTimeout(timer);
-      }
+  const handleToggleAiPlayback = () => {
+    if (!aiAudioUrl) return;
+    if (isThisAiNarrationPlaying) {
+      setCurrentlyPlayingAiIndex(null); 
+    } else {
+      setCurrentlyPlayingAiIndex(index); 
     }
-  }, [autoLoadAiNarration, accessLevel, aiAudioUrl, isLoadingAi, aiAudioError, generateActualAiNarration, index, predictionErrorTitle]);
-
-  const handleAiPlaybackEnd = () => { 
-    console.log(`NarrationItem ${index + 1} (${predictionErrorTitle}): AI narration playback finished.`); 
   };
+
   const handleUpgradeClick = () => { navigate('/upgrade'); };
+  const handleRetryLoad = () => { setAiAudioError(null); handleLoadAiNarration(); };
 
   return (
     <div className="space-y-3 p-4 bg-card/80 backdrop-blur-sm rounded-lg border border-border shadow-md flex flex-col justify-between min-h-[380px] md:min-h-[420px]">
@@ -115,41 +83,45 @@ export const NarrationItem = ({
         <NarrationRecorder index={index} onRecordingComplete={handleUserRecordingCompletion} existingAudioUrl={existingAudioUrl} />
       </div>
 
-      <div className="mt-4 pt-4 border-t border-primary/50 space-y-3 min-h-[240px] flex flex-col items-center justify-center">
-        <h4 className="text-base font-semibold text-primary mb-2 text-center">AI Guided Narration</h4>
-        
-        {isLoadingAi && (
-          <div className="flex flex-col items-center text-center p-3 space-y-2">
-            <div style={{ width: 100, height: 100 }} className="opacity-60"> <MyActualLogo width="100%" height="100%" /> </div>
-            <p className="text-sm text-primary animate-pulse flex items-center"> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Crafting: <span className="italic ml-1 truncate max-w-[150px]">{predictionErrorTitle}</span>...</p>
-          </div>
-        )}
+      {(accessLevel === 'premium_lifetime' || accessLevel === 'trial' || accessLevel === 'standard_lifetime') && (
+        <div className="mt-4 pt-4 border-t border-primary/50 space-y-3 min-h-[240px] flex flex-col items-center justify-center">
+          <h4 className="text-base font-semibold text-primary mb-2 text-center">AI Guided Narration</h4>
+          
+          {isLoadingAi && (
+            <div className="flex flex-col items-center text-center p-3 space-y-2">
+              <div style={{ width: 100, height: 100 }} className="opacity-60"> <MyActualLogo width="100%" height="100%" /> </div>
+              <p className="text-sm text-primary animate-pulse flex items-center"> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Crafting: <span className="italic ml-1 truncate max-w-[150px]">{predictionErrorTitle}</span>...</p>
+            </div>
+          )}
 
-        {accessLevel === 'premium_lifetime' && aiAudioUrl && !isLoadingAi && !aiAudioError && (
-          <AnimatedLogoWithAudio 
-            audioUrl={aiAudioUrl} 
-            onPlaybackEnd={handleAiPlaybackEnd} 
-            width={180} height={180} 
-            playButtonText={`Play: ${predictionErrorTitle}`} 
-            showLoadingText={true} 
-            animationVariant={index + 1} // Pass the variant number (1-11)
-          />
-        )}
-        {accessLevel === 'premium_lifetime' && aiAudioError && !isLoadingAi && (
-          <div className="text-red-500 text-sm text-center py-2"> <p>{aiAudioError}</p> <Button onClick={generateActualAiNarration} variant="link" size="sm" className="mt-1 text-primary">Try again</Button> </div>
-        )}
-        {accessLevel === 'premium_lifetime' && !aiAudioUrl && !isLoadingAi && !aiAudioError && (
-             <div className="flex flex-col items-center text-center p-3 space-y-2"> <div style={{ width: 100, height: 100 }} className="opacity-30"> <MyActualLogo width="100%" height="100%" /> </div> <p className="text-sm text-muted-foreground">AI for <span className="italic">{predictionErrorTitle}</span> queued...</p> </div>
-        )}
+          {aiAudioError && !isLoadingAi && (
+            <div className="text-red-500 text-sm text-center py-2"> <p>{aiAudioError}</p> <Button onClick={handleRetryLoad} variant="link" size="sm" className="mt-1 text-primary">Try again</Button> </div>
+          )}
 
-        {(accessLevel === 'trial' || accessLevel === 'standard_lifetime') && !isLoadingAi && showTeaserReady && (
-          <div className="flex flex-col items-center text-center p-3 space-y-3"> <div style={{ width: 120, height: 120 }} className="opacity-80"> <MyActualLogo width="100%" height="100%" /> </div> <Button onClick={handleUpgradeClick} className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg"> <Lock className="w-4 h-4 mr-2" /> Upgrade for "{predictionErrorTitle}"</Button> </div>
-        )}
-        {(accessLevel === 'trial' || accessLevel === 'standard_lifetime') && !isLoadingAi && !showTeaserReady && !aiAudioError && (
-             <div className="flex flex-col items-center text-center p-3 space-y-2"> <div style={{ width: 100, height: 100 }} className="opacity-30"> <MyActualLogo width="100%" height="100%" /> </div> <p className="text-sm text-muted-foreground">Premium AI for "{predictionErrorTitle}" available.</p> </div>
-        )}
-        {(accessLevel === 'none' || accessLevel === 'not_found' ) && !isLoadingAi && ( <div className="flex flex-col items-center text-center p-3 space-y-2"> <p className="text-sm text-muted-foreground">AI narration unavailable.</p> </div> )}
-      </div>
+          {!isLoadingAi && !aiAudioError && (
+            <>
+              {aiAudioUrl && accessLevel === 'premium_lifetime' && (
+                <AnimatedLogoWithAudio 
+                  audioUrl={aiAudioUrl} 
+                  onPlaybackEnd={handleToggleAiPlayback} // onEnd, stop playing
+                  width={180} height={180} 
+                  playButtonText={`Play: ${predictionErrorTitle}`} 
+                  showLoadingText={true} 
+                  animationVariant={index + 1}
+                  forceIsPlaying={isThisAiNarrationPlaying} // <<< PROP PASSED
+                  onTogglePlay={handleToggleAiPlayback}   // <<< PROP PASSED
+                />
+              )}
+              {!aiAudioUrl && accessLevel === 'premium_lifetime' && (
+                <Button onClick={handleLoadAiNarration}>Load AI Narration & Animated Logo</Button>
+              )}
+              {(accessLevel === 'trial' || accessLevel === 'standard_lifetime') && (
+                <div className="flex flex-col items-center text-center p-3 space-y-3"> <div style={{ width: 120, height: 120 }} className="opacity-50"> <MyActualLogo width="100%" height="100%" /> </div> <Button onClick={handleUpgradeClick} className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg"> <Lock className="w-4 h-4 mr-2" /> Upgrade for AI Narration </Button> </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

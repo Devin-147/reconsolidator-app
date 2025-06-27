@@ -1,122 +1,96 @@
-// src/pages/FollowUp.tsx
-import React, { useState, useEffect } from "react"; // Added React import
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save } from "lucide-react";
+// FILE: src/pages/FollowUp.tsx
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
-import { useRecording } from "@/contexts/RecordingContext"; // Import context hook
-import SUDSScale from "../components/SUDSScale"; // Import SUDS scale for final rating
+import { useRecording } from "@/contexts/RecordingContext";
+import SUDSScale from "../components/SUDSScale";
+import { useNavigate } from 'react-router-dom';
 
 const FollowUp = () => {
   const navigate = useNavigate();
-  // Get necessary context state/functions
-  const { memory1, memory2, completeTreatment, memoriesSaved, setCalibrationSuds, calibrationSuds } = useRecording();
+  const {
+    memory1,
+    memory2,
+    targetEventTranscript,
+    calibrationSuds: initialOverallSuds, // The very first SUDS score from T1 calibration
+    completeTreatment,
+  } = useRecording();
 
-  const [response, setResponse] = useState("");
-  // State to hold the SUDS rating for *this* follow-up session
-  const [followUpSuds, setFollowUpSuds] = useState<number>(calibrationSuds ?? 50); // Initialize with calibration or a default
-
-  // Check if prerequisite memories exist (memoriesSaved flag is crucial)
-  useEffect(() => {
-    // Redirect if memory setup wasn't completed in a previous session
-    if (!memoriesSaved) { // Rely on the flag set during initial setup
-      toast.error("Initial memory setup not completed. Please start from the beginning.");
-      navigate("/");
-    } else {
-      console.log("FollowUp: Prerequisites (memoriesSaved) met.");
-      // Optionally load previous response if stored?
-      // Set initial SUDS for this page based on last calibration or default
-      setFollowUpSuds(calibrationSuds ?? 50);
-    }
-    // Only check on mount or if memoriesSaved status changes (e.g., context reloads)
-  }, [memoriesSaved, navigate, calibrationSuds]); // Added calibrationSuds
-
-  const handleSave = () => {
-    // Require both text response AND a SUDS rating
-    if (!response || typeof followUpSuds !== 'number' || followUpSuds < 0 || followUpSuds > 100) { // Added SUDS range check
-      toast.error("Please enter your reflections and rate your current SUDS level (0-100).");
-      return;
-    }
-
-    // Call context function to record completion, passing "Follow-Up" and the SUDS score from this page
-    completeTreatment("Follow-Up", followUpSuds);
-    toast.success("Follow-Up assessment saved successfully. Thank you!");
-    navigate("/"); // Navigate home after completion for now
-  };
+  const [currentSuds, setCurrentSuds] = useState<number>(0);
+  const [finalComments, setFinalComments] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSudsChange = (value: number) => {
-      setFollowUpSuds(value); // Update local state for this page's SUDS rating
+    setCurrentSuds(value);
   };
 
+  const handleSubmit = () => {
+    if (typeof currentSuds !== 'number') {
+      toast.error("Please provide a final SUDS rating.");
+      return;
+    }
+    
+    // When completing the follow-up, the 'initialSudsForSession' for calculating improvement
+    // should be the very first SUDS score recorded for the program.
+    if (completeTreatment && typeof initialOverallSuds === 'number') {
+      // <<< CORRECTED: Pass initialOverallSuds as the third argument >>>
+      completeTreatment("Follow-Up", currentSuds, initialOverallSuds);
+      toast.success("Follow-up submitted successfully! Thank you.");
+      setIsSubmitted(true);
+    } else {
+      toast.error("Could not submit follow-up. Initial SUDS data is missing.");
+    }
+  };
+
+  if (isSubmitted) {
+    return (
+      <div className="text-center p-8 space-y-6">
+        <h1 className="text-3xl font-bold text-primary">Thank You!</h1>
+        <p className="text-lg text-muted-foreground">Your follow-up has been recorded. We appreciate you completing the program.</p>
+        <Button onClick={() => navigate('/')}>Back to Main</Button>
+      </div>
+    )
+  }
+  
   return (
-    // Outermost container with padding
-    <div className="min-h-screen bg-background text-foreground p-6 md:p-10 lg:p-16">
-        {/* Centering Container */}
-      <div className="max-w-3xl mx-auto space-y-8"> {/* <<< CENTERING APPLIED HERE */}
+    <div className="space-y-8 p-4 md:p-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold">Follow-Up Assessment</h1>
+        <p className="text-muted-foreground mt-2">Please provide your final feedback and ratings.</p>
+      </div>
+      
+      <div className="p-6 border rounded-lg bg-card space-y-4">
+        <h2 className="text-xl font-semibold">Original Target Memory Review</h2>
+        <p className="text-sm text-muted-foreground italic p-4 bg-muted/50 border rounded-md">
+          {targetEventTranscript || "No target event transcript available."}
+        </p>
+        <p className="text-sm">
+          Thinking about this original event now, please rate your current level of distress.
+        </p>
+        <SUDSScale onValueChange={handleSudsChange} initialValue={currentSuds} />
+      </div>
 
-        <Button
-          variant="ghost"
-          className="mb-6 -ml-4" // Adjusted margin
-          onClick={() => navigate("/")} // Navigate back to setup/home
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Main Setup
+      <div className="p-6 border rounded-lg bg-card space-y-4">
+        <h2 className="text-xl font-semibold">Final Comments (Optional)</h2>
+        <p className="text-sm text-muted-foreground">
+          Please share any final thoughts on your experience with the program.
+        </p>
+        <Textarea
+          value={finalComments}
+          onChange={(e) => setFinalComments(e.target.value)}
+          placeholder="Your feedback is valuable..."
+          rows={6}
+        />
+      </div>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSubmit} size="lg">
+          Submit Final Assessment
         </Button>
-
-        {/* Main Content */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Follow-Up Assessment</h1>
-          <p className="text-muted-foreground">Six weeks after Treatment 5</p>
-        </div>
-
-        <div className="space-y-6 bg-card p-6 rounded-lg border border-border shadow-md">
-          <h2 className="text-xl font-semibold">Follow-Up Instructions</h2>
-          <p className="text-muted-foreground">
-            This is your Follow-Up assessment, ideally completed around six weeks after finishing Treatment 5.
-            The purpose is to evaluate the long-term effectiveness of the treatment protocol on the memory you originally targeted.
-          </p>
-
-          {/* Reflection Input */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Your Reflections</h3>
-            <Textarea
-              value={response}
-              onChange={(e) => setResponse(e.target.value)}
-              placeholder="Please enter your reflections here. Consider how the targeted memory affects you now compared to before starting the program. Have the emotional responses changed? How often do you think about it? Describe your overall progress and any lasting changes."
-              className="min-h-[200px] bg-background/50"
-              rows={8}
-            />
-          </div>
-
-          {/* Final SUDS Rating for Follow-up */}
-           <div className="space-y-4">
-             <h3 className="text-lg font-medium">Current Distress Level (SUDS)</h3>
-             <p className="text-sm text-muted-foreground">
-               Please rate your current level of distress (0-100) specifically when thinking about the original Target Event *now*.
-             </p>
-             <SUDSScale
-               initialValue={followUpSuds} // Use local state for this page's SUDS
-               onValueChange={handleSudsChange} // Update local state
-               // readOnly={false} // Ensure it's editable
-             />
-           </div>
-
-          {/* Save Button */}
-          <Button
-            className="w-full mt-4"
-            onClick={handleSave}
-            // Disable if text or SUDS is missing/invalid
-            disabled={!response || typeof followUpSuds !== 'number'}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Complete & Save Follow-Up
-          </Button>
-        </div>
-        {/* End Main Content Section */}
-
-      </div> {/* End Centering Container */}
-    </div> // End Outermost Container
+      </div>
+    </div>
   );
 };
 

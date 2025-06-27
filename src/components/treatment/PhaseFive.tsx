@@ -1,5 +1,5 @@
 // FILE: src/components/treatment/PhaseFive.tsx
-// Corrected typo for reversedItemIndex and contains all logic.
+// Adds missing props (forceIsPlaying, onTogglePlay) to AnimatedLogoWithAudio call.
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ import { type PredictionError } from "@/components/PredictionErrorSelector";
 import { NarrationRecorder } from "@/components/NarrationRecorder";
 import { useRecording } from "@/contexts/RecordingContext";
 import { toast } from "sonner";
-import { useAuth, UserAccessLevel } from "@/contexts/AuthContext"; // UserAccessLevel not strictly needed here if only using accessLevel
+import { useAuth } from "@/contexts/AuthContext";
 import AnimatedLogoWithAudio from "@/components/AnimatedLogoWithAudio";
-import MyActualLogo from "@/components/MyActualLogo"; // MyActualLogo not used in this version, can be removed if not needed for other states
+import MyActualLogo from "@/components/MyActualLogo";
 
 interface PhaseFiveProps {
   isCurrentPhase: boolean;
@@ -35,7 +35,7 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
   onComplete,
   treatmentNumber,
 }) => {
-  const { memory1, memory2, targetEventTranscript: sessionTargetEvent } = useRecording();
+  const { memory1, memory2, targetEventTranscript: sessionTargetEvent, currentlyPlayingAiIndex, setCurrentlyPlayingAiIndex } = useRecording();
   const { accessLevel, userEmail } = useAuth();
   const userIdForApi = userEmail;
 
@@ -46,220 +46,103 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
 
   useEffect(() => { 
     if (isCurrentPhase) {
-        console.log(`PhaseFive (T${treatmentNumber}): Activated. Resetting local state.`);
-        setIndicesForReversal([]); 
-        setReversedScriptObjects([]); 
-        setIsSelectionComplete(false); 
-        setUserRecordedReverseAudios(Array(8).fill(null)); 
+        setIndicesForReversal([]); setReversedScriptObjects([]); 
+        setIsSelectionComplete(false); setUserRecordedReverseAudios(Array(8).fill(null)); 
     } else {
-        setIndicesForReversal([]); 
-        setReversedScriptObjects([]); 
-        setIsSelectionComplete(false); 
-        setUserRecordedReverseAudios([]);
+        setIndicesForReversal([]); setReversedScriptObjects([]); 
+        setIsSelectionComplete(false); setUserRecordedReverseAudios([]);
     }
-  }, [isCurrentPhase, treatmentNumber]);
+  }, [isCurrentPhase]);
 
   const handleNarrationToReverseSelect = useCallback((originalErrorIndex: number) => {
     setIndicesForReversal(prev => {
-        if (prev.includes(originalErrorIndex)) { 
-            return prev.filter(i => i !== originalErrorIndex); 
-        } else if (prev.length < 8) { 
-            return [...prev, originalErrorIndex]; 
-        }
-        toast.info("You can only select up to 8 narratives for reversal.");
-        return prev;
+        if (prev.includes(originalErrorIndex)) { return prev.filter(i => i !== originalErrorIndex); }
+        else if (prev.length < 8) { return [...prev, originalErrorIndex]; }
+        toast.info("Max 8 selections for reversal."); return prev;
     });
   }, []);
 
   const generateAndPrepareReverseScripts = useCallback(() => {
-    if (indicesForReversal.length !== 8) { 
-        toast.error("Please select exactly 8 narratives to reverse."); 
-        return; 
-    }
+    if (indicesForReversal.length !== 8) { toast.error("Select 8 narratives."); return; }
     if (!memory1 || !memory2 || !sessionTargetEvent || !selectedPredictionErrors || selectedPredictionErrors.length < 11) {
-        toast.error("Cannot generate reversed scripts: Base memories or full prediction error list is missing."); 
-        return;
+        toast.error("Base data missing."); return;
     }
-
-    console.log(`PhaseFive (T${treatmentNumber}): Generating 8 reversed scripts from original indices:`, indicesForReversal);
-    const newReversedItems: ReversedScriptItem[] = [];
-    let generationOk = true;
-
-    indicesForReversal.forEach(originalIndex => {
-      if (originalIndex < 0 || originalIndex >= selectedPredictionErrors.length) {
-        console.error(`PhaseFive: Invalid originalIndex ${originalIndex} for selectedPredictionErrors of length ${selectedPredictionErrors.length}.`);
-        generationOk = false; return;
-      }
-      const pe = selectedPredictionErrors[originalIndex];
-      if (!pe) {
-          console.error(`PhaseFive: PredictionError not found for original index ${originalIndex}.`);
-          generationOk = false; return; 
-      }
-      newReversedItems.push({
-        originalIndex,
-        title: pe.title, 
-        reversedText: `Reverse Script (Under 7 seconds):\n${memory2}\nThen, ${pe.description}\nThen, ${sessionTargetEvent}\nThen, ${memory1}`,
-        aiAudioUrl: null,
-        isLoadingAi: false,
-        aiError: null,
-      });
+    const newReversedItems: ReversedScriptItem[] = []; let ok = true;
+    indicesForReversal.forEach(idx => {
+      if (idx < 0 || idx >= selectedPredictionErrors.length) { ok = false; return; }
+      const pe = selectedPredictionErrors[idx]; if (!pe) { ok = false; return; }
+      newReversedItems.push({ originalIndex: idx, title: pe.title, reversedText: `Reverse Script (7s max):\n${memory2}\nThen, ${pe.description}\nThen, ${sessionTargetEvent}\nThen, ${memory1}`, aiAudioUrl: null, isLoadingAi: false, aiError: null });
     });
-    
-    if (!generationOk || newReversedItems.length !== 8) {
-        toast.error("Error: Could not generate all 8 reversed scripts due to data issues with selected items.");
-        setReversedScriptObjects([]); return;
-    }
+    if (!ok || newReversedItems.length !== 8) { toast.error("Error generating all reversed scripts."); return; }
+    setReversedScriptObjects(newReversedItems); setUserRecordedReverseAudios(Array(8).fill(null));
+    setIsSelectionComplete(true); toast.success("Reverse scripts prepared.");
+  }, [indicesForReversal, memory1, memory2, sessionTargetEvent, selectedPredictionErrors]);
 
-    setReversedScriptObjects(newReversedItems);
-    setUserRecordedReverseAudios(Array(newReversedItems.length).fill(null));
-    setIsSelectionComplete(true);
-    toast.success("8 Reverse scripts prepared. Please record each one quickly.");
-    if (accessLevel === 'premium_lifetime') {
-      toast.info("AI narrations for reversed scripts will load automatically.");
-    }
-  }, [indicesForReversal, memory1, memory2, sessionTargetEvent, selectedPredictionErrors, treatmentNumber, accessLevel]);
-
-  const triggerSingleReverseAiLoad = useCallback(async (reversedItemIndex: number) => { // Parameter is reversedItemIndex
-    if (!reversedScriptObjects || reversedItemIndex < 0 || reversedItemIndex >= reversedScriptObjects.length) {
-        console.error(`PhaseFive: Invalid reversedItemIndex (${reversedItemIndex}) or empty reversedScriptObjects for AI load.`);
-        return;
-    }
+  const triggerSingleReverseAiLoad = useCallback(async (reversedItemIndex: number) => {
+    if (!reversedScriptObjects || reversedItemIndex < 0 || reversedItemIndex >= reversedScriptObjects.length) return;
     const itemToLoad = reversedScriptObjects[reversedItemIndex];
-    if (!itemToLoad || itemToLoad.isLoadingAi || itemToLoad.aiAudioUrl || itemToLoad.aiError || !userIdForApi) {
-        return;
-    }
-    setReversedScriptObjects(prev => prev.map((item, i) => i === reversedItemIndex ? {...item, isLoadingAi: true, aiError: null} : item));
+    if (!itemToLoad || itemToLoad.isLoadingAi || itemToLoad.aiAudioUrl || itemToLoad.aiError || !userIdForApi) return;
+    setReversedScriptObjects(p => p.map((it, i) => i === reversedItemIndex ? {...it, isLoadingAi: true, aiError: null} : it));
     try {
-      console.log(`PhaseFive (T${treatmentNumber}): Requesting AI narration for REVERSED script: "${itemToLoad.title}" (Orig. PE Index: ${itemToLoad.originalIndex}).`);
-      const response = await fetch('/api/generate-narration-audio', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: itemToLoad.reversedText, userId: userIdForApi, treatmentNumber, narrativeIndex: `reverse-${itemToLoad.originalIndex}` }),
-      });
-      if (!response.ok) { 
-        let eD = `API Error ${response.status}`; 
-        try { const eJ=await response.json(); eD=eJ.error||eD; } catch {} 
-        throw new Error(eD); 
-      }
-      const data = await response.json();
-      if (!data.audioUrl) throw new Error("No audio URL from API for reversed script.");
-      setReversedScriptObjects(prev => prev.map((item, i) => i === reversedItemIndex ? {...item, aiAudioUrl: data.audioUrl, isLoadingAi: false} : item));
-    } catch (error: any) {
-      setReversedScriptObjects(prev => prev.map((item, i) => i === reversedItemIndex ? {...item, aiError: error.message || "Failed to load AI.", isLoadingAi: false} : item));
-      toast.error(`Error loading AI for "${itemToLoad.title}": ${error.message || "Unknown error"}`);
-    }
+      const res = await fetch('/api/generate-narration-audio', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text: itemToLoad.reversedText, userId: userIdForApi, treatmentNumber, narrativeIndex: `reverse-${itemToLoad.originalIndex}`})});
+      if (!res.ok) { let e = `API Err ${res.status}`; try{const j=await res.json();e=j.error||e;}catch{} throw new Error(e); }
+      const d = await res.json(); if (!d.audioUrl) throw new Error("No audio URL (rev).");
+      setReversedScriptObjects(p => p.map((it, i) => i === reversedItemIndex ? {...it, aiAudioUrl: d.audioUrl, isLoadingAi: false} : it));
+    } catch (err:any) { setReversedScriptObjects(p => p.map((it, i) => i === reversedItemIndex ? {...it, aiError: err.message,isLoadingAi:false} : it)); toast.error(`AI err for "${itemToLoad.title}": ${err.message}`);}
   }, [reversedScriptObjects, userIdForApi, treatmentNumber]);
 
   useEffect(() => {
     if (isSelectionComplete && accessLevel === 'premium_lifetime' && reversedScriptObjects.length > 0) {
-      reversedScriptObjects.forEach((rsItem, rIdx) => { // rIdx is the correct loop variable here
-        if (!rsItem.isLoadingAi && !rsItem.aiAudioUrl && !rsItem.aiError) {
-          triggerSingleReverseAiLoad(rIdx); // Use rIdx
-        }
-      });
+      reversedScriptObjects.forEach((rs, i) => { if (!rs.isLoadingAi && !rs.aiAudioUrl && !rs.aiError) triggerSingleReverseAiLoad(i); });
     }
-  }, [isSelectionComplete, accessLevel, reversedScriptObjects, triggerSingleReverseAiLoad, treatmentNumber]);
+  }, [isSelectionComplete, accessLevel, reversedScriptObjects, triggerSingleReverseAiLoad]);
 
-  const handleUserReverseNarrationComplete = useCallback((reversedItemIndex: number, audioUrl: string | null) => {
-    setUserRecordedReverseAudios(prev => {
-        const newUrls = [...prev];
-        if (reversedItemIndex >= 0 && reversedItemIndex < newUrls.length) {
-             if (newUrls[reversedItemIndex]?.startsWith('blob:')) URL.revokeObjectURL(newUrls[reversedItemIndex]!);
-             newUrls[reversedItemIndex] = audioUrl;
-        }
-        return newUrls;
-    });
-  }, []);
-
+  const handleUserReverseNarrationComplete = useCallback((idx: number, url: string|null) => { setUserRecordedReverseAudios(p => {const n=[...p]; if(idx>=0 && idx<n.length){if(n[idx]?.startsWith('blob:'))URL.revokeObjectURL(n[idx]!); n[idx]=url;} return n;}); }, []);
+  
+  const handleToggleReverseAiPlayback = (reversedItemIndex: number) => {
+    // Use a unique negative index range to avoid conflicts with NarrationPhase's 0-10 indices
+    const playbackId = -(reversedItemIndex + 1); // e.g., -1, -2, ..., -8
+    if (currentlyPlayingAiIndex === playbackId) {
+      setCurrentlyPlayingAiIndex(null); // Stop this one
+    } else {
+      setCurrentlyPlayingAiIndex(playbackId); // Play this one
+    }
+  };
+  
+  if (!isCurrentPhase) return null;
   const completedUserReversalsCount = userRecordedReverseAudios.filter(url => !!url).length;
   const allUserReversalsRecorded = isSelectionComplete && reversedScriptObjects.length > 0 && completedUserReversalsCount === reversedScriptObjects.length;
 
-  if (!isCurrentPhase) return null;
-
   return (
     <div className="space-y-6 p-4 border rounded-lg bg-card shadow-md">
-      <div className="space-y-2"> 
-        <h3 className="text-lg font-semibold text-card-foreground">Phase 5: Reverse Integration Narratives</h3> 
-        <p className="text-sm text-muted-foreground"> 
-          {!isSelectionComplete 
-            ? `Select exactly 8 of your 11 narratives from Step 4 to reverse. These will be used to create short, impactful reverse-flow experiences. (${indicesForReversal.length}/8 selected)` 
-            : `For each reversed script: record yourself reading it (under 7 seconds). If premium, AI versions will load automatically for you to play. (${completedUserReversalsCount}/${reversedScriptObjects.length} user recordings completed)`
-          } 
-        </p> 
-      </div>
-
+      <div className="space-y-2"> <h3 className="text-lg font-semibold">Phase 5: Reverse Integration</h3> <p className="text-sm text-muted-foreground">{!isSelectionComplete ? `Select 8 narratives to reverse. (${indicesForReversal.length}/8)` : `Record/Listen. (${completedUserReversalsCount}/${reversedScriptObjects.length})`}</p> </div>
       {!isSelectionComplete && selectedPredictionErrors && selectedPredictionErrors.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="text-base font-medium text-card-foreground">Select 8 Previous Narratives for Reversal:</h4>
-          <div className="space-y-2 max-h-60 overflow-y-auto p-2 border rounded bg-muted/10 scrollbar-thin">
-            {selectedPredictionErrors.map((peObject, originalIndex) => (
-              <div key={peObject.id} className="flex items-center gap-3 p-1.5 rounded hover:bg-muted/50">
-                <Checkbox 
-                  id={`reverse-select-${peObject.id}`} 
-                  checked={indicesForReversal.includes(originalIndex)} 
-                  onCheckedChange={() => handleNarrationToReverseSelect(originalIndex)} 
-                  disabled={indicesForReversal.length >= 8 && !indicesForReversal.includes(originalIndex)} 
-                />
-                <label htmlFor={`reverse-select-${peObject.id}`} className="text-sm cursor-pointer flex-1"> 
-                  <span className="font-medium">{peObject.title}</span>: <span className="text-muted-foreground/80">{peObject.description.substring(0, 50)}...</span>
-                </label>
-              </div>
-            ))}
-          </div>
-          <Button onClick={generateAndPrepareReverseScripts} disabled={indicesForReversal.length !== 8} className="w-full">
-            <ArrowDown className="w-4 h-4 mr-2" /> Confirm Selection & Prepare Reverse Scripts 
-          </Button>
-        </div>
+        <div className="space-y-4"> <h4 className="text-base">Select 8 for Reversal:</h4> <div className="space-y-2 max-h-60 overflow-y-auto p-2 border rounded">{selectedPredictionErrors.map((pe, oi) => (<div key={pe.id} className="flex items-center gap-3 p-1.5"><Checkbox id={`rs-${pe.id}`} checked={indicesForReversal.includes(oi)} onCheckedChange={()=>handleNarrationToReverseSelect(oi)} disabled={indicesForReversal.length >= 8 && !indicesForReversal.includes(oi)}/><label htmlFor={`rs-${pe.id}`} className="text-sm flex-1"><span className="font-medium">{pe.title}</span></label></div>))}</div> <Button onClick={generateAndPrepareReverseScripts} disabled={indicesForReversal.length !== 8} className="w-full"><ArrowDown className="mr-2"/>Confirm & Prepare</Button> </div>
       )}
-
       {isSelectionComplete && reversedScriptObjects.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="text-base font-medium text-card-foreground">Record/Listen to Reversed Narratives:</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {reversedScriptObjects.map((rsItem, reversedItemIndex) => ( // This is the correct map variable name
-              <div key={rsItem.originalIndex} className="p-3 bg-black/10 rounded-lg space-y-2 border border-border/50">
-                 <p className="text-xs text-muted-foreground font-medium">
-                   Reverse of: <span className="italic text-primary">{rsItem.title}</span> 
-                   <span className="text-xs text-muted-foreground/70"> (Orig. Script #{rsItem.originalIndex + 1})</span>
-                 </p>
-                 <div className="whitespace-pre-wrap text-sm p-2 bg-background rounded border border-dashed border-border/30 max-h-32 overflow-y-auto scrollbar-thin">{rsItem.reversedText}</div>
-                 <h5 className="text-xs font-medium pt-1 text-card-foreground">Your Recording (under 7s):</h5>
-                 <NarrationRecorder 
-                    index={reversedItemIndex} 
-                    onRecordingComplete={(audioUrl) => handleUserReverseNarrationComplete(reversedItemIndex, audioUrl)} 
-                    existingAudioUrl={userRecordedReverseAudios[reversedItemIndex]} 
-                 />
-                 {accessLevel === 'premium_lifetime' && (
-                    <div className="mt-2 pt-2 border-t border-primary/30 space-y-2">
-                      <h5 className="text-xs font-semibold text-primary">AI Version (Premium):</h5>
-                      {rsItem.isLoadingAi && <div className="flex items-center text-sm text-primary animate-pulse"><Loader2 className="mr-1 h-3 w-3 animate-spin"/>Loading AI audio...</div>}
-                      {/* Corrected variable name for retry button */}
-                      {rsItem.aiError && !rsItem.isLoadingAi && <div className="text-xs text-red-500">{rsItem.aiError} <Button onClick={() => triggerSingleReverseAiLoad(reversedItemIndex)} size="sm" variant="link" className="p-0 h-auto text-xs">Retry</Button></div>}
-                      {/* Corrected variable name for animationVariant */}
-                      {rsItem.aiAudioUrl && !rsItem.isLoadingAi && !rsItem.aiError && 
-                        <AnimatedLogoWithAudio 
-                            audioUrl={rsItem.aiAudioUrl} 
-                            width={100} 
-                            height={100} 
-                            playButtonText={`Play AI Reverse ${reversedItemIndex+1}`} 
-                            animationVariant={reversedItemIndex + 1} 
-                        />
-                      }
-                    </div>
-                 )}
-              </div>
-            ))}
-          </div>
+        <div className="space-y-4"> <h4 className="text-base">Reversed Narratives:</h4> <div className="grid md:grid-cols-2 gap-4">{reversedScriptObjects.map((rsItem, reversedItemIndex) => (
+          <div key={rsItem.originalIndex} className="p-3 bg-black/10 rounded-lg space-y-2 border">
+             <p className="text-xs"><span className="italic">{rsItem.title}</span> (Reversed)</p> <div className="whitespace-pre-wrap text-sm p-2 bg-background rounded max-h-32 overflow-y-auto">{rsItem.reversedText}</div>
+             <h5 className="text-xs pt-1">Your Recording (7s max):</h5> <NarrationRecorder index={reversedItemIndex} onRecordingComplete={(url) => handleUserReverseNarrationComplete(reversedItemIndex, url)} existingAudioUrl={userRecordedReverseAudios[reversedItemIndex]} />
+             {accessLevel === 'premium_lifetime' && (
+              <div className="mt-2 pt-2 border-t space-y-2"> <h5 className="text-xs text-primary">AI Version:</h5>
+                {rsItem.isLoadingAi && <div className="flex items-center text-sm"><Loader2 className="mr-1 animate-spin"/>Loading...</div>}
+                {rsItem.aiError && !rsItem.isLoadingAi && <div className="text-xs text-red-500">{rsItem.aiError} <Button onClick={()=>triggerSingleReverseAiLoad(reversedItemIndex)} size="sm" variant="link">Retry</Button></div>}
+                {rsItem.aiAudioUrl && !rsItem.isLoadingAi && !rsItem.aiError && 
+                    <AnimatedLogoWithAudio 
+                        audioUrl={rsItem.aiAudioUrl} 
+                        width={100} height={100} 
+                        playButtonText={`Play AI Rev ${reversedItemIndex+1}`} 
+                        animationVariant={reversedItemIndex + 1} // Pass variant 1-8
+                        forceIsPlaying={currentlyPlayingAiIndex === -(reversedItemIndex + 1)} // Check against unique negative index
+                        onTogglePlay={() => handleToggleReverseAiPlayback(reversedItemIndex)} // Pass the handler
+                    />
+                }
+              </div>)}
+          </div>))}</div>
         </div>
       )}
-
-      {isSelectionComplete && allUserReversalsRecorded && ( 
-        <div className="border-t pt-4 mt-6"> 
-          <Button onClick={onComplete} className="w-full"> 
-            All Reverse Recordings Done - Proceed 
-            <ArrowRight className="ml-2 w-4 h-4"/> 
-          </Button> 
-        </div> 
-      )}
+      {isSelectionComplete && allUserReversalsRecorded && ( <div className="border-t pt-4 mt-6"> <Button onClick={onComplete} className="w-full">All Reverse Done - Proceed <ArrowRight className="ml-2"/></Button> </div> )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 // FILE: src/components/AnimatedLogoWithAudio.tsx
-// Corrected GSAP play/pause logic to ensure yoyo effect works correctly.
+// CORRECTED: Uses a single master timeline to ensure constant base animations + layered Zaps.
 
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
@@ -15,6 +15,8 @@ interface AnimatedLogoWithAudioProps {
   playButtonText?: string;
   showLoadingText?: boolean;
   animationVariant: number; 
+  forceIsPlaying: boolean; 
+  onTogglePlay: () => void; 
 }
 
 const zapSequences: string[][] = [
@@ -32,115 +34,111 @@ const zapSequences: string[][] = [
 ];
 
 const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
-  audioUrl, onPlaybackEnd, width = 200, height = 200, 
+  audioUrl, onPlaybackEnd, width = 180, height = 180, 
   playButtonText = "Play Narration", showLoadingText = false, animationVariant, 
+  forceIsPlaying, onTogglePlay
 }) => {
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isAudioLoaded, setIsAudioLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const svgContainerRef = useRef<HTMLDivElement | null>(null); 
-  
-  const baseAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const zapAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const svgElementRef = useRef<SVGSVGElement | null>(null);
+  const masterTimelineRef = useRef<gsap.core.Timeline | null>(null);
 
-  // Effect to initialize GSAP timelines ONCE
   useEffect(() => {
-    if (!svgContainerRef.current) return;
-    svgElementRef.current = svgContainerRef.current.firstChild as SVGSVGElement | null;
-    const svgElement = svgElementRef.current;
+    if (!svgContainerRef.current || animationVariant === undefined || animationVariant < 1 || animationVariant > zapSequences.length) return;
+    
+    const svgElement = svgContainerRef.current.firstChild as SVGSVGElement | null;
     if (!svgElement || typeof svgElement.querySelector !== 'function') return;
 
-    // --- Create BASE Timeline ---
-    baseAnimationTimelineRef.current?.kill();
-    const baseTl = gsap.timeline({ paused: true, repeat: -1 });
-    baseAnimationTimelineRef.current = baseTl;
+    masterTimelineRef.current?.kill();
+    const masterTl = gsap.timeline({ paused: true, repeat: -1 });
+    masterTimelineRef.current = masterTl;
+
+    console.log(`AnimatedLogo: Building master timeline for variant ${animationVariant}`);
+    
     const innerBackground = svgElement.querySelector('#Inner-background');
     const scanBlip = svgElement.querySelector('#scanBlip');
     const knightRiderPathElement = svgElement.querySelector('#Knight-rider');
 
-    if (innerBackground) { baseTl.to(innerBackground, { opacity: 0.85, duration: 2.5, ease: 'sine.inOut', yoyo: true }, 0); }
+    if (innerBackground) {
+      masterTl.to(innerBackground, { opacity: 0.8, duration: 2.5, ease: 'sine.inOut', yoyo: true }, 0);
+    }
     if (scanBlip && knightRiderPathElement) {
-      gsap.set(knightRiderPathElement, { opacity: 1 });
-      const scanPathX_Start = 453; const scanPathWidth = 304;
-      const blipWidth = Math.floor(scanPathWidth * 0.15);
-      const blipScanStartPos = scanPathX_Start;
-      const blipScanEndPos = scanPathX_Start + scanPathWidth - blipWidth;
-      gsap.set(scanBlip, { attr: { x: blipScanStartPos, width: blipWidth } });
-      baseTl.to(scanBlip, { attr: { x: blipScanEndPos }, duration: 0.7, ease: "sine.inOut", yoyo: true }, 0);
+        gsap.set(knightRiderPathElement, { opacity: 1 });
+        const scanPathX_Start = 453; const scanPathWidth = 304;
+        const blipWidth = Math.floor(scanPathWidth * 0.20);
+        const blipScanStartPos = scanPathX_Start;
+        const blipScanEndPos = scanPathX_Start + scanPathWidth - blipWidth;
+        gsap.set(scanBlip, { attr: { x: blipScanStartPos, width: blipWidth } });
+        masterTl.to(scanBlip, { attr: { x: blipScanEndPos }, duration: 0.7, ease: "none", yoyo: true }, 0);
     }
-    
-    return () => { baseAnimationTimelineRef.current?.kill(); zapAnimationTimelineRef.current?.kill(); };
-  }, []); // Runs only once on mount
 
-  // Effect to create/recreate ZAP timeline ONLY when variant changes
-  useEffect(() => {
-    const svgElement = svgElementRef.current;
-    if (!svgElement || animationVariant === undefined || animationVariant < 1 || animationVariant > zapSequences.length) return;
-    
-    zapAnimationTimelineRef.current?.kill(); // Kill previous
     const currentZapSequence = zapSequences[animationVariant - 1];
-    if (!currentZapSequence) return;
-
-    const zapTl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.0 });
-    zapAnimationTimelineRef.current = zapTl;
-    let currentTime = 0;
-    currentZapSequence.forEach((className, classIndex) => {
-      const elementsToAnimate = svgElement.querySelectorAll(`.${className}`);
-      if (elementsToAnimate.length > 0) {
-        zapTl.to(elementsToAnimate, { opacity: 0.4, duration: 1.5, ease: 'power1.inOut', yoyo: true, stagger: 0.05 }, currentTime);
-      }
-      currentTime += 0.8;
-    });
-  }, [animationVariant]); // Re-run ONLY if animationVariant changes
-
-  // Master Play/Pause Control useEffect
-  useEffect(() => {
-    const baseTl = baseAnimationTimelineRef.current;
-    const zapTl = zapAnimationTimelineRef.current;
-    if (isPlayingAudio) {
-        if (baseTl && baseTl.paused()) baseTl.play();
-        if (zapTl && zapTl.paused()) zapTl.play();
-    } else {
-        if (baseTl && baseTl.isActive()) baseTl.pause();
-        if (zapTl && zapTl.isActive()) zapTl.pause();
+    if (currentZapSequence) {
+        let zapTime = 0.2; 
+        currentZapSequence.forEach((className) => {
+          const filteredElements = Array.from(svgElement.querySelectorAll(`.${className}`)).filter(el => el.id !== 'Inner-background' && el.id !== 'Knight-rider' && el.id !== 'scanBlip');
+          if (filteredElements.length > 0) { 
+            masterTl.to(filteredElements, { opacity: 0.5, duration: 1.2, ease: 'power1.inOut', yoyo: true, stagger: 0.08 }, zapTime); 
+          }
+          zapTime += 0.6;
+        });
     }
-  }, [isPlayingAudio]);
+    return () => { masterTimelineRef.current?.kill(); };
+  }, [animationVariant]); 
+
+  useEffect(() => {
+    const masterTl = masterTimelineRef.current;
+    const audioElement = audioRef.current;
+    if (!masterTl || !audioElement) return;
+
+    if (forceIsPlaying) {
+      if (masterTl.paused()) masterTl.play();
+      if (audioElement.paused) audioElement.play().catch(console.error);
+    } else {
+      if (masterTl.isActive()) masterTl.pause();
+      if (!audioElement.paused) audioElement.pause();
+    }
+  }, [forceIsPlaying]);
 
   useEffect(() => {
     const audioElement = audioRef.current; if (!audioElement) return;
-    if (audioUrl) { if (audioElement.src !== audioUrl) { audioElement.src = audioUrl; setIsAudioLoaded(false); setIsPlayingAudio(false); }
-    } else { audioElement.pause(); audioElement.src = ""; setIsPlayingAudio(false); setIsAudioLoaded(false); }
+    if (audioUrl) {
+      if (audioElement.src !== audioUrl) {
+        audioElement.src = audioUrl;
+        setIsAudioLoaded(false);
+      }
+    } else {
+      audioElement.src = "";
+      setIsAudioLoaded(false);
+    }
   }, [audioUrl]);
 
   useEffect(() => {
     const audioElement = audioRef.current; if (!audioElement) return;
     const handleCanPlayThrough = () => setIsAudioLoaded(true);
-    const handleAudioPlayEvent = () => { if (!isPlayingAudio) setIsPlayingAudio(true); };
-    const handleAudioPauseEvent = () => { if (isPlayingAudio) setIsPlayingAudio(false); };
-    const handleAudioEnded = () => { setIsPlayingAudio(false); if (onPlaybackEnd) onPlaybackEnd(); };
+    const handleAudioEnded = () => { if (onTogglePlay) onTogglePlay(); }; // Call parent's toggle to set currently playing to null
     audioElement.addEventListener('canplaythrough', handleCanPlayThrough);
-    audioElement.addEventListener('play', handleAudioPlayEvent);
-    audioElement.addEventListener('pause', handleAudioPauseEvent);
     audioElement.addEventListener('ended', handleAudioEnded);
-    return () => { /* remove listeners */ };
-  }, [onPlaybackEnd, isPlayingAudio]);
-
-  const togglePlayPause = () => {
-    if (!audioUrl || !isAudioLoaded) return;
-    const audioElement = audioRef.current; 
-    if (audioElement) { if (isPlayingAudio) audioElement.pause(); else audioElement.play().catch(console.error); }
-  };
+    return () => { 
+      audioElement.removeEventListener('canplaythrough', handleCanPlayThrough);
+      audioElement.removeEventListener('ended', handleAudioEnded);
+    };
+  }, [onTogglePlay]);
 
   return (
     <div className="flex flex-col items-center space-y-4 my-4">
       <div ref={svgContainerRef} style={{ width: typeof width === 'number' ? `${width}px` : width, height: typeof height === 'number' ? `${height}px` : height, overflow: 'visible' }}>
         <MyActualLogo width="100%" height="100%" /> 
       </div>
-      <audio ref={audioRef} />
+      <audio ref={audioRef} /> 
       {audioUrl && (
-        <Button onClick={togglePlayPause} disabled={!isAudioLoaded} variant="secondary" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-lg px-6 py-3 text-base rounded-md">
-          {isPlayingAudio ? 'Pause AI Narration' : playButtonText}
+        <Button 
+            onClick={onTogglePlay} 
+            disabled={!isAudioLoaded} 
+            variant="secondary" 
+            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-lg px-6 py-3 text-base rounded-md"
+        >
+          {forceIsPlaying ? 'Pause AI Narration' : playButtonText}
         </Button>
       )}
       {showLoadingText && audioUrl && !isAudioLoaded && <p className="text-sm text-primary animate-pulse mt-2">Preparing audio...</p>}

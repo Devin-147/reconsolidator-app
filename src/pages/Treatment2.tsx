@@ -1,5 +1,5 @@
 // FILE: src/pages/Treatment2.tsx
-// Corrected to pass all required props to child components
+// Corrected to pass all required props to child components.
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -107,7 +107,7 @@ const Treatment2 = () => {
     } else { 
       toast.error(`Error saving results for T${THIS_TREATMENT_NUMBER}. Session SUDS missing.`); 
     }
-  }, [completeTreatment, sessionSuds, THIS_TREATMENT_NUMBER]);
+  }, [completeTreatment, sessionSuds]);
 
   const getPhaseTitle = () => {
     if (currentProcessingStep === 0) return "Select Mismatch Experiences";

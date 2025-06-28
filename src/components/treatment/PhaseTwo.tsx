@@ -1,46 +1,43 @@
-
-import { Camera } from "lucide-react";
+// FILE: src/components/treatment/PhaseTwo.tsx
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface PhaseTwoProps {
-  isCurrentPhase: boolean;
-  response: string;
-  onResponseChange: (response: string) => void;
-  onComplete: () => void;
+    isCurrentPhase: boolean;
+    response: string;
+    onResponseChange: (value: string) => void;
+    onComplete: () => void;
 }
 
-export const PhaseTwo = ({ 
-  isCurrentPhase, 
-  response, 
-  onResponseChange, 
-  onComplete 
-}: PhaseTwoProps) => {
-  return (
-    <div className={`space-y-4 transition-opacity duration-300 ${isCurrentPhase ? 'opacity-100' : 'opacity-50'}`}>
-      <div className="flex items-center gap-3">
-        <Camera className="w-6 h-6 text-primary" />
-        <h2 className="text-xl font-semibold">Phase 2: Black and White Film</h2>
-      </div>
-      <p className="text-muted-foreground">
-        Now imagine the same scene, but the movie is in black and white. How does removing the color change your 
-        perception? What details stand out differently? Which changes are you noticing in this version?
-      </p>
-      <Textarea
-        value={response}
-        onChange={(e) => onResponseChange(e.target.value)}
-        placeholder="Describe the black and white version..."
-        className="min-h-[150px]"
-        disabled={!isCurrentPhase}
-      />
-      {isCurrentPhase && response && (
-        <Button 
-          className="w-full"
-          onClick={onComplete}
-        >
-          Continue to Phase 3
-        </Button>
-      )}
-    </div>
-  );
+export const PhaseTwo: React.FC<PhaseTwoProps> = ({ isCurrentPhase, response, onResponseChange, onComplete }) => {
+    if (!isCurrentPhase) return null;
+
+    const handleComplete = () => {
+        if (response.trim().length < 10) {
+            toast.error("Please provide a more detailed description for this phase.");
+            return;
+        }
+        onComplete();
+    };
+
+    return (
+        <div className="p-6 border rounded-lg bg-card shadow-lg space-y-4 animate-fadeIn">
+            <h3 className="text-xl font-semibold text-primary">Phase 2: Black & White Dissociated Movie</h3>
+            <p className="text-sm text-muted-foreground">
+                Now, imagine the movie of your Target Event begins, but it's in grainy black and white. You are still safe in the movie theater seat, watching from a distance. Describe this black and white movie. How does the lack of color change the feeling?
+            </p>
+            <Textarea
+                value={response}
+                onChange={(e) => onResponseChange(e.target.value)}
+                placeholder="Describe the black and white movie..."
+                rows={6}
+                className="bg-background focus:ring-primary focus:border-primary"
+            />
+            <Button onClick={handleComplete} disabled={response.trim().length < 10} className="w-full">
+                Complete Phase 2
+            </Button>
+        </div>
+    );
 };

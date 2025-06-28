@@ -1,6 +1,5 @@
 // FILE: src/components/AnimatedLogoWithAudio.tsx
-// FINAL ATTEMPT: Separate timelines to guarantee constant Knight Rider blip.
-// Inner background is static. Particles and Zaps are layered on top.
+// Corrected variable name typo for zapAnimationTimelineRef.
 
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
@@ -36,7 +35,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   const svgContainerRef = useRef<HTMLDivElement | null>(null); 
   
   const knightRiderTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const zapTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  const zapAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null); // <<< CORRECT NAME
   const particleTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const svgElementRef = useRef<SVGSVGElement | null>(null);
 
@@ -46,17 +45,14 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     }
   }, []);
 
-  // Effect for CONSTANT Knight Rider Blip
   useEffect(() => {
     const svgElement = svgElementRef.current;
     if (!svgElement) return;
     knightRiderTimelineRef.current?.kill();
     const blipTl = gsap.timeline({ paused: true, repeat: -1 });
     knightRiderTimelineRef.current = blipTl;
-
     const scanBlip = svgElement.querySelector('#scanBlip');
     const knightRiderPathElement = svgElement.querySelector('#Knight-rider');
-
     if (scanBlip && knightRiderPathElement) {
         gsap.set(knightRiderPathElement, { opacity: 1 });
         const scanPathX_Start = 453; const scanPathWidth = 304;
@@ -69,20 +65,19 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     return () => { knightRiderTimelineRef.current?.kill(); };
   }, []); 
 
-  // Effect for Zaps and Particles, dependent on variant
   useEffect(() => {
     const svgElement = svgElementRef.current;
     if (!svgElement || animationVariant === undefined) return;
     
-    zapTimelineRef.current?.kill();
+    zapAnimationTimelineRef.current?.kill();
     particleTimelineRef.current?.kill();
 
     const zapTl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.5 });
-    zapAnimationTimelineRef.current = zapTl;
+    zapAnimationTimelineRef.current = zapTl; // <<< CORRECT NAME
     const currentZapSequence = zapSequences[animationVariant - 1] || zapSequences[0];
     let zapTime = 0;
     currentZapSequence.forEach(className => {
-        const elements = Array.from(svgElement.querySelectorAll(`.${className}`)).filter(el => el.id !== 'Inner-background');
+        const elements = Array.from(svgElement.querySelectorAll(`.${className}`)).filter(el => el.id !== 'Inner-background' && el.id !== 'Knight-rider' && el.id !== 'scanBlip');
         if (elements.length > 0) {
             zapTl.fromTo(elements, { opacity: 1 }, { opacity: 0.2, duration: 0.4, yoyo: true, repeat: 1, stagger: 0.1 }, zapTime);
         }
@@ -100,25 +95,23 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
             stagger: { each: 0.05, from: "random", repeat: -1, yoyo: true }
         });
     }
-    return () => { zapTimelineRef.current?.kill(); particleTimelineRef.current?.kill(); };
+    return () => { zapAnimationTimelineRef.current?.kill(); particleTimelineRef.current?.kill(); }; // <<< CORRECT NAME
   }, [animationVariant]);
 
-  // Master Play/Pause Control based on forceIsPlaying prop from parent
   useEffect(() => {
     if (forceIsPlaying) {
       knightRiderTimelineRef.current?.play();
-      zapTimelineRef.current?.play();
+      zapAnimationTimelineRef.current?.play(); // <<< CORRECT NAME
       particleTimelineRef.current?.play();
       audioRef.current?.play().catch(console.error);
     } else {
       knightRiderTimelineRef.current?.pause();
-      zapTimelineRef.current?.pause();
+      zapAnimationTimelineRef.current?.pause(); // <<< CORRECT NAME
       particleTimelineRef.current?.pause();
       audioRef.current?.pause();
     }
   }, [forceIsPlaying]);
 
-  // Audio URL and Event Listener handling
   useEffect(() => {
     const audioElement = audioRef.current; if (!audioElement) return;
     if (audioUrl) { if (audioElement.src !== audioUrl) { audioElement.src = audioUrl; setIsAudioLoaded(false); } } 

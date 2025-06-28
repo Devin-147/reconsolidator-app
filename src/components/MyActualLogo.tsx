@@ -1,4 +1,5 @@
 // FILE: src/components/MyActualLogo.tsx
+// Adds particle elements for the starfield effect.
 
 import React from 'react';
 
@@ -45,7 +46,7 @@ const MyActualLogo: React.FC<MyActualLogoProps> = (props) => {
         `}
       </style>
       
-      <g id="particle-layer">
+      <g id="particle-layer" opacity="0.7">
         {particles.map(p => (
           <circle key={p.id} id={p.id} cx={p.cx} cy={p.cy} r={p.r} className="particle" opacity="0" />
         ))}

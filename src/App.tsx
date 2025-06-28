@@ -1,4 +1,5 @@
 // FILE: src/App.tsx
+// Adds the route for LOGOTESTPAGEANTIRETARD.
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
@@ -19,16 +20,16 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
 import FAQ from './pages/FAQ';
 import NotFound from './pages/NotFound';
+import LOGOTESTPAGEANTIRETARD from './pages/LOGOTESTPAGEANTIRETARD'; // <<< IMPORT NEW PAGE
 
 const ProtectedRoute = ({ children, requiredStatus = 'trial' }: { children: JSX.Element, requiredStatus?: 'trial' | 'paid' }) => {
-  const { isAuthenticated, userStatus, isLoading, accessLevel } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, isLoading, accessLevel } = useAuth();
   const BYPASS_PAYMENT_FOR_TESTING = true; 
   if (isLoading) { return <div className="flex justify-center items-center min-h-screen">Loading Access...</div>; }
   if (!isAuthenticated) { return <Navigate to="/welcome" replace />; }
-  let hasRequiredGeneralPaidStatus = (accessLevel === 'standard_lifetime' || accessLevel === 'premium_lifetime');
+  let hasRequiredGeneralPaidAccess = (accessLevel === 'standard_lifetime' || accessLevel === 'premium_lifetime');
   if (BYPASS_PAYMENT_FOR_TESTING && requiredStatus === 'paid') { return children; }
-  if (requiredStatus === 'paid' && !hasRequiredGeneralPaidStatus) { return <Navigate to="/upgrade" replace />; }
+  if (requiredStatus === 'paid' && !hasRequiredGeneralPaidAccess) { return <Navigate to="/upgrade" replace />; }
   return children;
 };
 
@@ -54,6 +55,8 @@ function App() {
                 <Route path="/treatment-5" element={<ProtectedRoute requiredStatus='paid'><Treatment5 /></ProtectedRoute>} />
                 <Route path="/upgrade" element={<ProtectedRoute requiredStatus='trial'><PaymentPage /></ProtectedRoute>} />
                 <Route path="/follow-up" element={<ProtectedRoute requiredStatus='paid'><FollowUp /></ProtectedRoute>} />
+                {/* <<< ADDED ROUTE FOR THE TEST PAGE >>> */}
+                <Route path="/logo-test-page-anti-retard" element={<LOGOTESTPAGEANTIRETARD />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div> 

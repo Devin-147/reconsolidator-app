@@ -37,24 +37,18 @@ const Treatment5 = () => {
 
   useEffect(() => {
     setIsLoadingPage(true);
-    if (!memory1 || !memory2) {
-      toast.error("M1/M2 missing. Calibrate first.");
-      navigate('/calibrate/1', { replace: true }); return;
-    }
+    if (!memory1 || !memory2) { navigate('/calibrate/1', { replace: true }); return; }
     const locState = location.state as TreatmentLocationState | null;
     if (locState?.sessionTargetEvent && typeof locState?.sessionSuds === 'number' && locState?.treatmentNumber === THIS_TREATMENT_NUMBER) {
       setSessionTargetEvent(locState.sessionTargetEvent); setSessionSuds(locState.sessionSuds);
       setCurrentProcessingStep(0); setIsLoadingPage(false);
-    } else {
-      toast.info(`Please calibrate for T${THIS_TREATMENT_NUMBER}.`);
-      navigate(`/calibrate/${THIS_TREATMENT_NUMBER}`, { replace: true });
-    }
+    } else { navigate(`/calibrate/${THIS_TREATMENT_NUMBER}`, { replace: true }); }
   }, [location.state, memory1, memory2, navigate]);
-  
+
   const handlePredictionErrorsComplete = useCallback((errors: PredictionError[]) => { setSelectedErrors(errors); setCurrentProcessingStep(1); }, []);
   const generateNarrativeScripts = useCallback(() => {
-    if (!memory1 || !memory2 || !sessionTargetEvent || selectedErrors.length !== 11) return;
-    const scripts = selectedErrors.map((errorObject: PredictionError) => `Imagine you are in the projection booth... But then, ${errorObject.description}. ...ending on a scene when ${memory2}.`);
+    if (!memory1 || !memory2 || !sessionTargetEvent || !selectedErrors || selectedErrors.length !== 11) return;
+    const scripts = selectedErrors.map((errorObject: PredictionError) => `Imagine... ${memory1}. ...Then ${sessionTargetEvent}. But then, ${errorObject.description}. ...ending on a scene when ${memory2}.`);
     setNarrativeScripts(scripts);
   }, [memory1, memory2, sessionTargetEvent, selectedErrors]);
   useEffect(() => { if (currentProcessingStep === 4) generateNarrativeScripts(); }, [currentProcessingStep, generateNarrativeScripts]);
@@ -66,15 +60,15 @@ const Treatment5 = () => {
   const handlePhase5Complete = useCallback(() => setCurrentProcessingStep(6), []);
   const handleUserNarrationRecorded = useCallback((index: number, audioUrl: string | null) => { if(updateNarrationAudio) updateNarrationAudio(index, audioUrl); }, [updateNarrationAudio]);
   
-  const handlePhase6Complete = useCallback((finalSudsFromPhaseSix: number) => {
+  const handlePhase6Complete = useCallback((finalSuds: number) => {
     if (completeTreatment && typeof sessionSuds === 'number') {
-      completeTreatment(`Treatment ${THIS_TREATMENT_NUMBER}`, finalSudsFromPhaseSix, sessionSuds);
-      if (sessionSuds > 0) setImprovementResult(((sessionSuds - finalSudsFromPhaseSix) / sessionSuds) * 100);
-      setFinalSudsResult(finalSudsFromPhaseSix); setShowResultsView(true);
+      completeTreatment(`Treatment ${THIS_TREATMENT_NUMBER}`, finalSuds, sessionSuds);
+      if (sessionSuds > 0) setImprovementResult(((sessionSuds - finalSuds) / sessionSuds) * 100);
+      setFinalSudsResult(finalSuds); setShowResultsView(true);
     }
   }, [completeTreatment, sessionSuds]);
 
-  const getPhaseTitle = () => { /* ... (Same as before) ... */ };
+  const getPhaseTitle = () => { if (currentProcessingStep === 0) return "Select Mismatch Experiences"; return `Processing Phase ${currentProcessingStep}`; };
   if (isLoadingPage) { return (<div>Loading...</div>); }
   
   return (

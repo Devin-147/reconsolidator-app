@@ -1,93 +1,45 @@
 // FILE: src/pages/FollowUp.tsx
 // Corrected completeTreatment call.
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { useRecording } from "@/contexts/RecordingContext";
-import SUDSScale from "@/components/SUDSScale"; 
+import SUDSScale from "@/components/SUDSScale";
 import { useNavigate } from 'react-router-dom';
 
 const FollowUp = () => {
   const navigate = useNavigate();
-  const {
-    targetEventTranscript,
-    calibrationSuds: initialOverallSuds,
-    completeTreatment,
-  } = useRecording();
-
+  const { targetEventTranscript, calibrationSuds: initialOverallSuds, completeTreatment } = useRecording();
   const [currentSuds, setCurrentSuds] = useState<number>(0);
   const [finalComments, setFinalComments] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSudsChange = (value: number) => {
-    setCurrentSuds(value);
-  };
+  const handleSudsChange = (value: number) => { setCurrentSuds(value); };
 
   const handleSubmit = () => {
-    if (typeof currentSuds !== 'number') {
-      toast.error("Please provide a final SUDS rating."); return;
-    }
-    
+    if (typeof currentSuds !== 'number') { toast.error("Please provide a final SUDS rating."); return; }
     if (completeTreatment && typeof initialOverallSuds === 'number') {
-      completeTreatment("Follow-Up", currentSuds, initialOverallSuds); 
-      toast.success("Follow-up submitted successfully! Thank you.");
+      completeTreatment("Follow-Up", currentSuds, initialOverallSuds);
+      toast.success("Follow-up submitted! Thank you.");
       setIsSubmitted(true);
     } else {
-      toast.error("Could not submit follow-up. Initial SUDS data is missing from context.");
+      toast.error("Could not submit follow-up. Initial SUDS data missing.");
     }
   };
 
   if (isSubmitted) {
-    return (
-      <div className="text-center p-8 space-y-6 animate-fadeIn">
-        <h1 className="text-3xl font-bold text-primary">Thank You!</h1>
-        <p className="text-lg text-muted-foreground">Your follow-up has been recorded. We appreciate you completing the program.</p>
-        <Button onClick={() => navigate('/')}>Back to Main</Button>
-      </div>
-    )
+    return ( <div className="text-center p-8 space-y-6"> <h1 className="text-3xl">Thank You!</h1> <p>Your follow-up has been recorded.</p> <Button onClick={() => navigate('/')}>Back to Main</Button> </div> )
   }
   
   return (
-    <div className="space-y-8 p-4 md:p-6 animate-fadeIn">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold">Follow-Up Assessment</h1>
-        <p className="text-muted-foreground mt-2">Please provide your final feedback and ratings for the original target memory.</p>
-      </div>
-      
-      <div className="p-6 border rounded-lg bg-card space-y-4 shadow-md">
-        <h2 className="text-xl font-semibold">Original Target Memory Review</h2>
-        <p className="text-sm text-muted-foreground italic p-4 bg-muted/50 border rounded-md">
-          {targetEventTranscript || "No target event transcript available. Please ensure you have completed at least one treatment."}
-        </p>
-        <p className="text-sm">
-          Thinking about this original event now, please rate your current level of distress.
-        </p>
-        <SUDSScale onValueChange={handleSudsChange} initialValue={currentSuds} />
-      </div>
-
-      <div className="p-6 border rounded-lg bg-card space-y-4 shadow-md">
-        <h2 className="text-xl font-semibold">Final Comments (Optional)</h2>
-        <p className="text-sm text-muted-foreground">
-          Please share any final thoughts on your experience with the program.
-        </p>
-        <Textarea
-          value={finalComments}
-          onChange={(e) => setFinalComments(e.target.value)}
-          placeholder="Your feedback is valuable..."
-          rows={6}
-          className="bg-background focus:ring-primary focus:border-primary"
-        />
-      </div>
-
-      <div className="flex justify-end pt-4">
-        <Button onClick={handleSubmit} size="lg" disabled={typeof currentSuds !== 'number'}>
-          Submit Final Assessment
-        </Button>
-      </div>
+    <div className="space-y-8 p-4 md:p-6">
+      <div className="text-center"> <h1 className="text-3xl font-bold">Follow-Up Assessment</h1> <p className="mt-2">Final feedback and ratings.</p> </div>
+      <div className="p-6 border rounded-lg bg-card space-y-4"> <h2 className="text-xl">Original Target Memory Review</h2> <p className="text-sm italic p-4 bg-muted/50 border rounded-md">{targetEventTranscript || "N/A"}</p> <p className="text-sm">Thinking about this original event now, rate your distress.</p> <SUDSScale onValueChange={handleSudsChange} initialValue={currentSuds} /> </div>
+      <div className="p-6 border rounded-lg bg-card space-y-4"> <h2 className="text-xl">Final Comments (Optional)</h2> <Textarea value={finalComments} onChange={(e) => setFinalComments(e.target.value)} placeholder="Your feedback is valuable..." rows={6} /> </div>
+      <div className="flex justify-end"> <Button onClick={handleSubmit} size="lg" disabled={typeof currentSuds !== 'number'}>Submit Final Assessment</Button> </div>
     </div>
   );
 };
-
 export default FollowUp;

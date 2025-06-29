@@ -73,7 +73,7 @@ const Treatment3 = () => {
       setNarrativeScripts([]); return null;
     }
     const scripts = selectedErrors.map((errorObject: PredictionError) => {
-      return `Imagine you are in the projection booth of a movie theatre, looking out at the screen. You also see another version of yourself sitting comfortably in the theatre seats below, watching the screen also.\n\nThe movie begins, showing a time when ${memory1}. Then the movie shows a time when ${sessionTargetEvent}. But then, ${errorObject.description}. You are noticing yourself being surprised and delighted with this change of scene. Then I see the movie ending on a scene when ${memory2}`;
+      return `Imagine you are in the projection booth of a movie theatre, looking out at the screen. You also see another version of yourself sitting comfortably in the theatre seats below, watching the screen also.\n\nThe movie begins, showing a time when ${memory1}. Then the movie shows a time when ${sessionTargetEvent}. But then, ${errorObject.description}. You are noticing yourself in the movie seat being surprised and delighted with this change of scene. Then I see the movie ending on a scene when ${memory2}`;
     });
     setNarrativeScripts(scripts);
     return scripts;

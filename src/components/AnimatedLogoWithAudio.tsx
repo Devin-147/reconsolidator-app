@@ -1,32 +1,31 @@
 // FILE: src/components/AnimatedLogoWithAudio.tsx
-// Corrected variable name typo for zapAnimationTimelineRef.
+// Restores "lovely blip" logic (sine.inOut ease, repeatDelay) on an independent timeline.
+// Inner background is static. Particles and Zaps are layered on top.
 
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { toast } from "sonner"; 
 import { Button } from '@/components/ui/button'; 
 import MyActualLogo from '@/components/MyActualLogo'; 
 
 interface AnimatedLogoWithAudioProps {
   audioUrl: string | null;
-  onPlaybackEnd?: () => void;
   width?: number | string;
   height?: number | string;
   playButtonText?: string;
-  showLoadingText?: boolean;
   animationVariant: number; 
   forceIsPlaying: boolean; 
   onTogglePlay: () => void; 
 }
 
 const zapSequences: string[][] = [
-  ['s1','s3','s4'],['s2','s4','s5'],['s3','s1','s2'],['s4','s5','s3'],['s5','s2','s1'],
-  ['s0','s1','s2'],['s5','s4','s3'],['s1','s2','s3'],['s0','s2','s4'],['s2','s3','s5'],['s1','s5','s3']
+  ['s1','s3','s4'],['s2','s4','s5'],['s3','s1','s2'],['s4','s5','s3'],
+  ['s5','s2','s1'],['s0','s1','s2'],['s5','s4','s3'],['s1','s2','s3'],
+  ['s0','s2','s4'],['s2','s3','s5'],['s1','s5','s3']
 ];
 
 const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
-  audioUrl, onPlaybackEnd, width = 180, height = 180, 
-  playButtonText = "Play Narration", showLoadingText = false, animationVariant, 
+  audioUrl, width = 180, height = 180, 
+  playButtonText = "Play Narration", animationVariant, 
   forceIsPlaying, onTogglePlay
 }) => {
   const [isAudioLoaded, setIsAudioLoaded] = useState(false);
@@ -34,7 +33,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   const svgContainerRef = useRef<HTMLDivElement | null>(null); 
   
   const knightRiderTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const zapAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null); // Correct declaration
+  const zapTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const particleTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const svgElementRef = useRef<SVGSVGElement | null>(null);
 
@@ -45,24 +44,34 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   useEffect(() => {
     const svgElement = svgElementRef.current; if (!svgElement) return;
     knightRiderTimelineRef.current?.kill();
-    const blipTl = gsap.timeline({ paused: true, repeat: -1 });
+    const blipTl = gsap.timeline({ paused: true });
     knightRiderTimelineRef.current = blipTl;
     const scanBlip = svgElement.querySelector('#scanBlip');
     const knightRiderPathElement = svgElement.querySelector('#Knight-rider');
+
     if (scanBlip && knightRiderPathElement) {
-        gsap.set(knightRiderPathElement, { opacity: 1 });
-        const scanPathX_Start = 453; const scanPathWidth = 304; const blipWidth = Math.floor(scanPathWidth * 0.15);
-        const blipScanStartPos = scanPathX_Start; const blipScanEndPos = scanPathX_Start + scanPathWidth - blipWidth;
+        gsap.set(knightRiderPathElement, { opacity: 0.9 });
+        const scanPathX_Start = 453; const scanPathWidth = 304;
+        const blipWidth = Math.floor(scanPathWidth * 0.20);
+        const blipScanStartPos = scanPathX_Start;
+        const blipScanEndPos = scanPathX_Start + scanPathWidth - blipWidth;
         gsap.set(scanBlip, { attr: { x: blipScanStartPos, width: blipWidth } });
-        blipTl.to(scanBlip, { attr: { x: blipScanEndPos }, duration: 0.5, ease: "none", yoyo: true });
+        
+        blipTl.to(scanBlip, { 
+            attr: { x: blipScanEndPos }, 
+            duration: 0.6, 
+            ease: "sine.inOut", 
+            yoyo: true, 
+            repeat: -1,
+            repeatDelay: 0.15 
+        });
     }
     return () => { knightRiderTimelineRef.current?.kill(); };
   }, []); 
 
   useEffect(() => {
     const svgElement = svgElementRef.current; if (!svgElement || animationVariant === undefined) return;
-    zapAnimationTimelineRef.current?.kill();
-    particleTimelineRef.current?.kill();
+    zapTimelineRef.current?.kill(); particleTimelineRef.current?.kill();
     const zapTl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.5 });
     zapAnimationTimelineRef.current = zapTl;
     const currentZapSequence = zapSequences[animationVariant - 1] || zapSequences[0];
@@ -75,16 +84,22 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     const particleTl = gsap.timeline({ paused: true, repeat: -1 });
     particleTimelineRef.current = particleTl;
     const particles = svgElement.querySelectorAll('.particle');
-    if (particles.length > 0) { particleTl.to(particles, { opacity: () => Math.random() * 0.9, scale: () => Math.random() * 1.5, duration: 1, ease: 'power1.inOut', yoyo: true, stagger: { each: 0.05, from: "random", repeat: -1, yoyo: true }}); }
-    return () => { zapAnimationTimelineRef.current?.kill(); particleTimelineRef.current?.kill(); };
+    if (particles.length > 0) {
+        particleTl.to(particles, {
+            opacity: () => Math.random() * 0.9, scale: () => Math.random() * 1.5,
+            duration: 1, ease: 'power1.inOut', yoyo: true,
+            stagger: { each: 0.05, from: "random", repeat: -1, yoyo: true }
+        });
+    }
+    return () => { zapTimelineRef.current?.kill(); particleTimelineRef.current?.kill(); };
   }, [animationVariant]);
 
   useEffect(() => {
     if (forceIsPlaying) {
-      knightRiderTimelineRef.current?.play(); zapAnimationTimelineRef.current?.play(); particleTimelineRef.current?.play();
+      knightRiderTimelineRef.current?.play(); zapTimelineRef.current?.play(); particleTimelineRef.current?.play();
       audioRef.current?.play().catch(console.error);
     } else {
-      knightRiderTimelineRef.current?.pause(); zapAnimationTimelineRef.current?.pause(); particleTimelineRef.current?.pause();
+      knightRiderTimelineRef.current?.pause(); zapTimelineRef.current?.pause(); particleTimelineRef.current?.pause();
       audioRef.current?.pause();
     }
   }, [forceIsPlaying]);
@@ -105,17 +120,16 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   }, [onTogglePlay]);
 
   return (
-    <div className="flex flex-col items-center space-y-4 my-4">
+    <div className="flex flex-col items-center space-y-4 my-2">
       <div ref={svgContainerRef} style={{ width: typeof width === 'number' ? `${width}px` : width, height: typeof height === 'number' ? `${height}px` : height, overflow: 'visible' }}>
         <MyActualLogo width="100%" height="100%" /> 
       </div>
       <audio ref={audioRef} /> 
       {audioUrl && (
         <Button onClick={onTogglePlay} disabled={!isAudioLoaded} variant="secondary" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold">
-          {forceIsPlaying ? 'Pause AI Narration' : playButtonText}
+          {forceIsPlaying ? `Pause: ${playButtonText}` : `Play: ${playButtonText}`}
         </Button>
       )}
-      {showLoadingText && audioUrl && !isAudioLoaded && <p className="text-sm text-primary animate-pulse">Preparing audio...</p>}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 // FILE: src/components/MyActualLogo.tsx
-// Corrected to include particle elements for the starfield effect.
+// Adds particle elements for the starfield effect.
 
 import React from 'react';
 

@@ -1,8 +1,8 @@
 // FILE: src/App.tsx
-// Removes the route and import for the deleted LOGOTESTPAGEANTIRETARD.
+// Ensures no route exists for the deleted test page.
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './components/ui/sidebar';
@@ -20,7 +20,6 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
 import FAQ from './pages/FAQ';
 import NotFound from './pages/NotFound';
-// The import for LOGOTESTPAGEANTIRETARD has been removed.
 
 const ProtectedRoute = ({ children, requiredStatus = 'trial' }: { children: JSX.Element, requiredStatus?: 'trial' | 'paid' }) => {
   const { isAuthenticated, isLoading, accessLevel } = useAuth();
@@ -55,7 +54,6 @@ function App() {
                 <Route path="/treatment-5" element={<ProtectedRoute requiredStatus='paid'><Treatment5 /></ProtectedRoute>} />
                 <Route path="/upgrade" element={<ProtectedRoute requiredStatus='trial'><PaymentPage /></ProtectedRoute>} />
                 <Route path="/follow-up" element={<ProtectedRoute requiredStatus='paid'><FollowUp /></ProtectedRoute>} />
-                {/* The route for LOGOTESTPAGEANTIRETARD has been removed. */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div> 

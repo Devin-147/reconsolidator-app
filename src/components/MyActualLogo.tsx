@@ -1,5 +1,5 @@
 // FILE: src/components/MyActualLogo.tsx
-// Adds particle elements behind the main logo for the animation effect.
+// Adds particle elements behind the main logo for the starfield animation.
 
 import React from 'react';
 

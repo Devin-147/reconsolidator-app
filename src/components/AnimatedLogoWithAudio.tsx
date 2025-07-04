@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { toast } from "sonner"; 
 import { Button } from '@/components/ui/button'; 
 import MyActualLogo from '@/components/MyActualLogo'; 
 
@@ -12,6 +13,7 @@ interface AnimatedLogoWithAudioProps {
   width?: number | string;
   height?: number | string;
   playButtonText?: string;
+  showLoadingText?: boolean;
   animationVariant: number; 
   forceIsPlaying: boolean; 
   onTogglePlay: () => void; 
@@ -24,7 +26,7 @@ const zapSequences: string[][] = [
 
 const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   audioUrl, width = 180, height = 180, 
-  playButtonText = "Play Narration", animationVariant, 
+  playButtonText = "Play Narration", showLoadingText = false, animationVariant, 
   forceIsPlaying, onTogglePlay
 }) => {
   const [isAudioLoaded, setIsAudioLoaded] = useState(false);
@@ -32,7 +34,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   const svgContainerRef = useRef<HTMLDivElement | null>(null); 
   
   const knightRiderTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const zapTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  const zapAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const particleTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const svgElementRef = useRef<SVGSVGElement | null>(null);
 
@@ -43,11 +45,10 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   useEffect(() => {
     const svgElement = svgElementRef.current; if (!svgElement) return;
     knightRiderTimelineRef.current?.kill();
-    const blipTl = gsap.timeline({ paused: true });
+    const blipTl = gsap.timeline({ paused: true, repeat: -1 });
     knightRiderTimelineRef.current = blipTl;
     const scanBlip = svgElement.querySelector('#scanBlip');
     const knightRiderPathElement = svgElement.querySelector('#Knight-rider');
-
     if (scanBlip && knightRiderPathElement) {
         gsap.set(knightRiderPathElement, { opacity: 0.9 });
         const scanPathX_Start = 453; const scanPathWidth = 304;
@@ -60,7 +61,9 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
 
   useEffect(() => {
     const svgElement = svgElementRef.current; if (!svgElement || animationVariant === undefined) return;
-    zapTimelineRef.current?.kill(); particleTimelineRef.current?.kill();
+    zapAnimationTimelineRef.current?.kill();
+    particleTimelineRef.current?.kill();
+
     const zapTl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.5 });
     zapAnimationTimelineRef.current = zapTl;
     const currentZapSequence = zapSequences[animationVariant - 1] || zapSequences[0];
@@ -70,6 +73,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
         if (elements.length > 0) { zapTl.fromTo(elements, { opacity: 1 }, { opacity: 0.2, duration: 0.4, yoyo: true, repeat: 1, stagger: 0.1 }, zapTime); }
         zapTime += 0.3;
     });
+    
     const particleTl = gsap.timeline({ paused: true, repeat: -1 });
     particleTimelineRef.current = particleTl;
     const particles = svgElement.querySelectorAll('.particle');
@@ -80,12 +84,22 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
             stagger: { each: 0.05, from: "random", repeat: -1, yoyo: true }
         });
     }
-    return () => { zapTimelineRef.current?.kill(); particleTimelineRef.current?.kill(); };
+    return () => { zapAnimationTimelineRef.current?.kill(); particleTimelineRef.current?.kill(); };
   }, [animationVariant]);
 
   useEffect(() => {
-    const masterPlay = () => { knightRiderTimelineRef.current?.play(); zapTimelineRef.current?.play(); particleTimelineRef.current?.play(); audioRef.current?.play().catch(console.error); };
-    const masterPause = () => { knightRiderTimelineRef.current?.pause(); zapTimelineRef.current?.pause(); particleTimelineRef.current?.pause(); audioRef.current?.pause(); };
+    const masterPlay = () => {
+        knightRiderTimelineRef.current?.play();
+        zapAnimationTimelineRef.current?.play();
+        particleTimelineRef.current?.play();
+        audioRef.current?.play().catch(console.error);
+    };
+    const masterPause = () => {
+        knightRiderTimelineRef.current?.pause();
+        zapAnimationTimelineRef.current?.pause();
+        particleTimelineRef.current?.pause();
+        audioRef.current?.pause();
+    };
     if (forceIsPlaying) { masterPlay(); } else { masterPause(); }
   }, [forceIsPlaying]);
 
@@ -101,7 +115,10 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     const handleAudioEnded = () => { if (onTogglePlay) onTogglePlay(); };
     audioElement.addEventListener('canplaythrough', handleCanPlayThrough);
     audioElement.addEventListener('ended', handleAudioEnded);
-    return () => { audioElement.removeEventListener('canplaythrough', handleCanPlayThrough); audioElement.removeEventListener('ended', handleAudioEnded); };
+    return () => { 
+      audioElement.removeEventListener('canplaythrough', handleCanPlayThrough);
+      audioElement.removeEventListener('ended', handleAudioEnded); 
+    };
   }, [onTogglePlay]);
 
   return (

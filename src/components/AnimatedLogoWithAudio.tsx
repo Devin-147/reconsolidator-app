@@ -1,5 +1,5 @@
 // FILE: src/components/AnimatedLogoWithAudio.tsx
-// Corrects animation control logic to ensure only one logo animates at a time.
+// Corrects all variable name typos for zapAnimationTimelineRef.
 
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
@@ -32,7 +32,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   const svgContainerRef = useRef<HTMLDivElement | null>(null); 
   
   const knightRiderTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const zapTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  const zapAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null); // Correct declaration
   const particleTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const svgElementRef = useRef<SVGSVGElement | null>(null);
 
@@ -40,36 +40,11 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     if (svgContainerRef.current) { svgElementRef.current = svgContainerRef.current.firstChild as SVGSVGElement | null; }
   }, []);
 
-  // This effect runs ONCE to create the timelines.
   useEffect(() => {
-    knightRiderTimelineRef.current = gsap.timeline({ paused: true });
-    zapAnimationTimelineRef.current = gsap.timeline({ paused: true });
-    particleTimelineRef.current = gsap.timeline({ paused: true });
-
-    return () => {
-      knightRiderTimelineRef.current?.kill();
-      zapAnimationTimelineRef.current?.kill();
-      particleTimelineRef.current?.kill();
-    };
-  }, []); 
-
-  // This effect re-builds the animations when the variant changes.
-  useEffect(() => {
-    const svgElement = svgElementRef.current; 
-    if (!svgElement || animationVariant === undefined) return;
-    
-    const blipTl = knightRiderTimelineRef.current;
-    const zapTl = zapAnimationTimelineRef.current;
-    const particleTl = particleTimelineRef.current;
-
-    if (!blipTl || !zapTl || !particleTl) return;
-
-    // Clear previous animations from timelines before adding new ones
-    blipTl.clear();
-    zapTl.clear();
-    particleTl.clear();
-
-    // 1. Re-build Knight Rider Animation
+    const svgElement = svgElementRef.current; if (!svgElement) return;
+    knightRiderTimelineRef.current?.kill();
+    const blipTl = gsap.timeline({ paused: true });
+    knightRiderTimelineRef.current = blipTl;
     const scanBlip = svgElement.querySelector('#scanBlip');
     const knightRiderPathElement = svgElement.querySelector('#Knight-rider');
     if (scanBlip && knightRiderPathElement) {
@@ -79,38 +54,55 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
         gsap.set(scanBlip, { attr: { x: scanPathX_Start, width: blipWidth } });
         blipTl.to(scanBlip, { attr: { x: scanPathX_Start + scanPathWidth - blipWidth }, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: -1, repeatDelay: 0.15 });
     }
+    return () => { knightRiderTimelineRef.current?.kill(); };
+  }, []); 
+
+  useEffect(() => {
+    const svgElement = svgElementRef.current; if (!svgElement || animationVariant === undefined) return;
     
-    // 2. Re-build Zap Animation
+    zapAnimationTimelineRef.current?.kill(); // Use correct name
+    particleTimelineRef.current?.kill();
+
+    const zapTl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.5 });
+    zapAnimationTimelineRef.current = zapTl; // Use correct name
+
     const currentZapSequence = zapSequences[animationVariant - 1] || zapSequences[0];
     let zapTime = 0;
-    zapTl.repeat(-1).repeatDelay(1.5);
     currentZapSequence.forEach(className => {
         const elements = Array.from(svgElement.querySelectorAll(`.${className}`)).filter(el => el.id !== 'Inner-background');
-        if (elements.length > 0) { zapTl.fromTo(elements, { opacity: 1 }, { opacity: 0.2, duration: 0.4, yoyo: true, repeat: 1, stagger: 0.1 }, zapTime); }
+        if (elements.length > 0) {
+            zapTl.fromTo(elements, { opacity: 1 }, { opacity: 0.2, duration: 0.4, yoyo: true, repeat: 1, stagger: 0.1 }, zapTime);
+        }
         zapTime += 0.3;
     });
-
-    // 3. Re-build Particle Animation
+    
+    const particleTl = gsap.timeline({ paused: true, repeat: -1 });
+    particleTimelineRef.current = particleTl;
     const particles = svgElement.querySelectorAll('.particle');
-    particleTl.repeat(-1);
     if (particles.length > 0) {
         particleTl.to(particles, {
-            opacity: () => Math.random() * 0.9, scale: () => Math.random() * 1.5,
+            opacity: () => Math.random() * 0.9,
+            scale: () => Math.random() * 1.5,
             duration: 1, ease: 'power1.inOut', yoyo: true,
             stagger: { each: 0.05, from: "random", repeat: -1, yoyo: true }
         });
     }
+    return () => { 
+        zapAnimationTimelineRef.current?.kill(); // Use correct name
+        particleTimelineRef.current?.kill(); 
+    };
   }, [animationVariant]);
 
-  // Master Play/Pause Control based on forceIsPlaying prop
   useEffect(() => {
-    const timelines = [knightRiderTimelineRef.current, zapAnimationTimelineRef.current, particleTimelineRef.current];
     if (forceIsPlaying) {
-      timelines.forEach(tl => tl?.play());
+      knightRiderTimelineRef.current?.play();
+      zapAnimationTimelineRef.current?.play(); // Use correct name
+      particleTimelineRef.current?.play();
       audioRef.current?.play().catch(console.error);
     } else {
-      // When pausing, pause and reset the progress of the animations to the beginning.
-      timelines.forEach(tl => tl?.pause().progress(0));
+      knightRiderTimelineRef.current?.pause();
+      zapAnimationTimelineRef.current?.pause(); // Use correct name
+      particleTimelineRef.current?.pause();
       audioRef.current?.pause();
     }
   }, [forceIsPlaying]);
@@ -139,9 +131,12 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
         <MyActualLogo width="100%" height="100%" /> 
       </div>
       <audio ref={audioRef} /> 
-      <Button onClick={onTogglePlay} disabled={!isAudioLoaded} variant="secondary" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold">
-        {forceIsPlaying ? `Pause: ${playButtonText}` : `Play: ${playButtonText}`}
-      </Button>
+      {audioUrl && (
+        <Button onClick={onTogglePlay} disabled={!isAudioLoaded} variant="secondary" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold">
+          {forceIsPlaying ? `Pause: ${playButtonText}` : `Play: ${playButtonText}`}
+        </Button>
+      )}
+      {showLoadingText && audioUrl && !isAudioLoaded && <p className="text-sm text-primary animate-pulse mt-2">Preparing audio...</p>}
     </div>
   );
 };

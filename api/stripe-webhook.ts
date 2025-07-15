@@ -13,7 +13,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 let stripe: Stripe, resend: Resend, supabaseAdmin: SupabaseClient, initError: string | null = null;
 try {
   if (!stripeSecretKey || !webhookSigningSecret || !resendApiKey || !supabaseUrl || !supabaseServiceKey) throw new Error('One or more required environment variables are missing.');
-  stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
+  stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-05-28.basil' }); // <<< CORRECTED
   resend = new Resend(resendApiKey);
   supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 } catch (e: any) { initError = e.message; }

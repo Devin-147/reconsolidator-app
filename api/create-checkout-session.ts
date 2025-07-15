@@ -4,7 +4,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) { throw new Error('STRIPE_SECRET_KEY is not set.'); }
-const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
+const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-05-28.basil' }); // <<< CORRECTED
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') { return res.status(405).setHeader('Allow', 'POST').end('Method Not Allowed'); }

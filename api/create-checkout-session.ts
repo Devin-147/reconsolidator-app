@@ -1,31 +1,41 @@
 // FILE: api/create-checkout-session.ts
+// Updated to accept and apply a couponId
+
 import Stripe from 'stripe';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) { throw new Error('STRIPE_SECRET_KEY is not set.'); }
-const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-05-28.basil' }); // <<< CORRECTED
+const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') { return res.status(405).setHeader('Allow', 'POST').end('Method Not Allowed'); }
   try {
-    const { priceId, userEmail } = req.body;
+    const { priceId, userEmail, couponId } = req.body; // <<< Now accepts couponId
+
     if (!priceId || !userEmail) { return res.status(400).json({ error: 'Missing required parameters: priceId and userEmail.' }); }
     
     const success_url = `${req.headers['x-forwarded-proto']}://${req.headers.host}/treatment-1?session_id={CHECKOUT_SESSION_ID}`;
     const cancel_url = `${req.headers['x-forwarded-proto']}://${req.headers.host}/upgrade`;
+    
+    const sessionOptions: Stripe.Checkout.SessionCreateParams = {
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'payment',
+        success_url: success_url,
+        cancel_url: cancel_url,
+        customer_email: userEmail,
+        payment_intent_data: {
+          metadata: { user_email: userEmail, price_id: priceId }
+        },
+    };
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: 'payment',
-      success_url: success_url,
-      cancel_url: cancel_url,
-      customer_email: userEmail,
-      payment_intent_data: {
-        metadata: { user_email: userEmail, price_id: priceId }
-      },
-    });
+    // <<< If a couponId is provided, add it to the session options >>>
+    if (couponId && typeof couponId === 'string') {
+        sessionOptions.discounts = [{ coupon: couponId }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionOptions);
 
     if (!session.url) { throw new Error("Stripe session created without a URL."); }
     res.status(200).json({ sessionId: session.id, url: session.url });

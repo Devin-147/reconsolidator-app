@@ -1,17 +1,19 @@
 // FILE: api/create-checkout-session.ts
-// Updated to accept and apply a couponId
+// Corrected Stripe API version.
 
 import Stripe from 'stripe';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) { throw new Error('STRIPE_SECRET_KEY is not set.'); }
-const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
+
+// <<< CORRECTED API VERSION >>>
+const stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-05-28.basil' }); 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') { return res.status(405).setHeader('Allow', 'POST').end('Method Not Allowed'); }
   try {
-    const { priceId, userEmail, couponId } = req.body; // <<< Now accepts couponId
+    const { priceId, userEmail, couponId } = req.body;
 
     if (!priceId || !userEmail) { return res.status(400).json({ error: 'Missing required parameters: priceId and userEmail.' }); }
     
@@ -30,7 +32,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
     };
 
-    // <<< If a couponId is provided, add it to the session options >>>
     if (couponId && typeof couponId === 'string') {
         sessionOptions.discounts = [{ coupon: couponId }];
     }

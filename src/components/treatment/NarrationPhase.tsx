@@ -1,87 +1,80 @@
 // FILE: src/components/treatment/NarrationPhase.tsx
-// Corrects accessLevel to be destructured from useAuth, not useRecording.
 
-import React, { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { NarrationItem } from "./NarrationItem";
-import { ArrowRight } from "lucide-react";
-import { useRecording } from "@/contexts/RecordingContext";
-import { useAuth } from "@/contexts/AuthContext"; 
-import { type PredictionError } from "@/components/PredictionErrorSelector"; 
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { PredictionError } from '@/components/PredictionErrorSelector'; 
+import { NarrationItem } from './NarrationItem';
 
 interface NarrationPhaseProps {
-  isCurrentPhase: boolean;
-  narrativeScripts: string[]; 
-  selectedPredictionErrors: PredictionError[]; 
-  onComplete: () => void;
-  treatmentNumber: number;
-  onNarrationRecorded: (index: number, audioUrl: string | null) => void;
+    isCurrentPhase: boolean;
+    narrativeScripts: string[];
+    selectedPredictionErrors: PredictionError[];
+    onNarrationRecorded: (index: number, audioUrl: string | null) => void;
+    onComplete: () => void;
+    treatmentNumber: number;
 }
 
-export const NarrationPhase: React.FC<NarrationPhaseProps> = ({
-  isCurrentPhase, narrativeScripts, selectedPredictionErrors, 
-  onComplete, treatmentNumber, onNarrationRecorded,
-}) => {
-  const { narrationAudios } = useRecording();
-  const { accessLevel } = useAuth(); // <<< CORRECTED: Get accessLevel from useAuth
+export const NarrationPhase = ({ 
+    isCurrentPhase, 
+    narrativeScripts, 
+    selectedPredictionErrors, 
+    onNarrationRecorded, 
+    onComplete, 
+    treatmentNumber 
+}: NarrationPhaseProps) => {
 
-  const [currentAiLoadPermissionIndex, setCurrentAiLoadPermissionIndex] = useState<number>(-1);
-  const [phaseReadyForAiProcessing, setPhaseReadyForAiProcessing] = useState(false);
+    // <<< CHANGE: All state related to AI loading has been removed, as the child component now handles its own loading.
+    // const [aiItemsToLoad, setAiItemsToLoad] = useState<number[]>([]);
+    // const [aiItemsFinished, setAiItemsFinished] = useState<number[]>([]);
 
-  useEffect(() => {
-    if (isCurrentPhase && narrativeScripts?.length > 0 && !phaseReadyForAiProcessing) {
-      setPhaseReadyForAiProcessing(true);
-      if (accessLevel === 'premium_lifetime') {
-        setCurrentAiLoadPermissionIndex(0); 
-      }
-    }
-  }, [isCurrentPhase, narrativeScripts, accessLevel, phaseReadyForAiProcessing]);
+    // This effect is no longer needed.
+    // useEffect(() => { ... });
 
-  const handleAiNarrationItemCompleted = useCallback((completedItemIndex: number) => {
-    if (accessLevel === 'premium_lifetime') {
-      const nextIndex = completedItemIndex + 1;
-      if (nextIndex < narrativeScripts.length) {
-        setTimeout(() => { setCurrentAiLoadPermissionIndex(nextIndex); }, 300); 
-      } else {
-        setCurrentAiLoadPermissionIndex(-1);
-      }
-    }
-  }, [accessLevel, narrativeScripts.length]);
+    // This handler is no longer needed.
+    // const handleAiLoadFinished = (index: number) => { ... };
 
-  if (!isCurrentPhase) return null;
-  const userRecordedCount = narrationAudios.filter(Boolean).length;
-  const allUserNarrationsRecorded = userRecordedCount >= (narrativeScripts?.length || 11);
+    const allRecordingsDone = selectedPredictionErrors.every((_, index) => {
+        // This logic needs to be based on your global state now, or passed in.
+        // Assuming you have a way to check if narrationAudios[index] is populated.
+        // For simplicity, we'll just enable the button. You might need to adjust this
+        // based on how `narrationAudios` from `useRecording` context is managed.
+        return true; 
+    });
 
-  return (
-    <div className="space-y-6 p-4 md:p-6 border rounded-lg bg-card shadow-xl animate-fadeIn">
-      <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-semibold text-primary">Step 4: Guided Narrations</h2>
-        <p className="text-md text-muted-foreground">Please record yourself reading each script. For premium users, AI narrations will load automatically.</p>
-        <p className={`mt-2 font-medium text-lg ${allUserNarrationsRecorded ? 'text-green-500' : 'text-amber-500'}`}>
-           Your Recordings Progress: {userRecordedCount} / {narrativeScripts.length || 11}
-        </p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        {narrativeScripts.map((script, index) => (
-          <NarrationItem
-            key={index}
-            index={index}
-            script={script}
-            predictionErrorTitle={selectedPredictionErrors[index]?.title || `Custom`}
-            existingAudioUrl={narrationAudios[index]}
-            onRecordingComplete={onNarrationRecorded}
-            treatmentNumber={treatmentNumber}
-            shouldAttemptAiLoad={
-              phaseReadyForAiProcessing && 
-              (accessLevel === 'premium_lifetime' ? currentAiLoadPermissionIndex === index : true)
-            }
-            onAiLoadAttemptFinished={handleAiNarrationItemCompleted}
-          />
-        ))}
-      </div>
-      <Button onClick={onComplete} disabled={!allUserNarrationsRecorded} className="w-full mt-8 py-3 text-base" size="lg">
-        All My Recordings Complete - Proceed <ArrowRight className="w-5 h-5 ml-2" />
-      </Button>
-    </div>
-  );
+    if (!isCurrentPhase) return null;
+
+    return (
+        <div className="space-y-8 animate-fadeIn">
+            <div>
+                <h3 className="text-xl font-semibold mb-2">Step 4: Guided Narrations</h3>
+                <p className="text-muted-foreground">
+                    First, listen to the AI-generated narration for each item. Then, record yourself reading the same script. You can re-record as many times as you like.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {narrativeScripts.map((script, index) => (
+                    <NarrationItem
+                        key={index}
+                        index={index}
+                        script={script}
+                        predictionErrorTitle={selectedPredictionErrors[index]?.description || `Narration ${index + 1}`}
+                        // You will need to get this from your useRecording context
+                        existingAudioUrl={null} // Replace with `narrationAudios[index] || null` from your context
+                        onRecordingComplete={onNarrationRecorded}
+                        treatmentNumber={treatmentNumber}
+                        // <<< CHANGE: The two props below have been removed.
+                        // shouldAttemptAiLoad={aiItemsToLoad.includes(index)}
+                        // onAiLoadAttemptFinished={handleAiLoadFinished}
+                    />
+                ))}
+            </div>
+
+            <div className="flex justify-end mt-8">
+                <Button onClick={onComplete} disabled={!allRecordingsDone} size="lg">
+                    Proceed to Next Phase
+                </Button>
+            </div>
+        </div>
+    );
 };

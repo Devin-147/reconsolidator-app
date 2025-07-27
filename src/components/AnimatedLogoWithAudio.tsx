@@ -10,7 +10,6 @@ interface AnimatedLogoWithAudioProps {
   width?: number | string;
   height?: number | string;
   playButtonText?: string;
-  // <<< This is now the MASTER SWITCH for ALL animations.
   isAnimationActive?: boolean;
   forceIsPlaying: boolean; 
   onTogglePlay: () => void; 
@@ -41,10 +40,9 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     if (svgContainerRef.current) { svgElementRef.current = svgContainerRef.current.firstChild as SVGSVGElement | null; }
   }, []);
 
-  // <<< FIX: ALL animation setup is now gated by `isAnimationActive`.
-  // If the user is not premium, these useEffects do nothing.
+  // This effect now ONLY CREATES the Knight Rider animation. It does not play it.
   useEffect(() => {
-    if (!isAnimationActive) return; // <-- MASTER SWITCH
+    if (!isAnimationActive) return;
 
     const svgElement = svgElementRef.current; if (!svgElement) return;
     const scanBlip = svgElement.querySelector('#scanBlip');
@@ -54,19 +52,20 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     if (scanBlip && knightRiderPathElement) {
         gsap.set(knightRiderPathElement, { opacity: 0.9 });
         gsap.set(scanBlip, { opacity: 1 });
-        const blipTl = gsap.timeline({ paused: true });
+        const blipTl = gsap.timeline({ paused: true, repeat: -1 }); // <<< CHANGE: Repeats forever when played
         knightRiderTimelineRef.current = blipTl;
         const scanPathX_Start = 453; const scanPathWidth = 304;
         const blipWidth = Math.floor(scanPathWidth * 0.20);
         gsap.set(scanBlip, { attr: { x: scanPathX_Start, width: blipWidth } });
-        blipTl.to(scanBlip, { attr: { x: scanPathX_Start + scanPathWidth - blipWidth }, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: -1, repeatDelay: 0.15 });
-        blipTl.play(); // Start idle animation for premium user
+        blipTl.to(scanBlip, { attr: { x: scanPathX_Start + scanPathWidth - blipWidth }, duration: 0.6, ease: "sine.inOut", yoyo: true, repeatDelay: 0.15 });
+        // <<< CHANGE: The blipTl.play() line is REMOVED. The animation now waits to be told when to play.
     }
     return () => { knightRiderTimelineRef.current?.kill(); };
   }, [isAnimationActive]); 
 
+  // This effect for zaps and particles is unchanged. It creates the animations but leaves them paused.
   useEffect(() => {
-    if (!isAnimationActive) return; // <-- MASTER SWITCH
+    if (!isAnimationActive) return;
 
     const svgElement = svgElementRef.current; if (!svgElement || animationVariant === undefined) return;
     zapAnimationTimelineRef.current?.kill();
@@ -98,23 +97,23 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     };
   }, [isAnimationActive, animationVariant]);
 
-  // <<< FIX: This is the main playback logic, now fully respecting the `isAnimationActive` rule.
+  // <<< CHANGE: This is the MASTER playback controller.
+  // It now starts and stops ALL THREE animations together.
   useEffect(() => {
     if (forceIsPlaying) {
       audioRef.current?.play().catch(console.error);
-      // Only manipulate animations if the user is premium.
       if (isAnimationActive) {
-        knightRiderTimelineRef.current?.pause(); // Pause idle blip
-        zapAnimationTimelineRef.current?.play();   // Play active effects
-        particleTimelineRef.current?.play();
+        knightRiderTimelineRef.current?.play();   // Play Blip
+        zapAnimationTimelineRef.current?.play();   // Play Zap
+        particleTimelineRef.current?.play();     // Play Particles
       }
     } else {
       audioRef.current?.pause();
-      // Only manipulate animations if the user is premium.
       if (isAnimationActive) {
-        knightRiderTimelineRef.current?.play();    // Resume idle blip
-        zapAnimationTimelineRef.current?.pause();  // Pause active effects
-        particleTimelineRef.current?.pause();
+        // When pausing or stopping, we now pause everything and reset the playhead to the beginning.
+        knightRiderTimelineRef.current?.restart().pause();
+        zapAnimationTimelineRef.current?.restart().pause();
+        particleTimelineRef.current?.restart().pause();
       }
     }
   }, [forceIsPlaying, isAnimationActive]);

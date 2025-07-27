@@ -6,15 +6,15 @@ import { Button } from '@/components/ui/button';
 import MyActualLogo from '@/components/MyActualLogo'; 
 
 interface AnimatedLogoWithAudioProps {
-  // <<< CHANGE: audioUrl is now optional, as the component can be rendered for idle animation alone.
   audioUrl?: string | null;
   width?: number | string;
   height?: number | string;
   playButtonText?: string;
-  // <<< CHANGE: New prop to control the idle "Knight Rider" animation.
+  // <<< This is now the MASTER SWITCH for ALL animations.
   isAnimationActive?: boolean;
   forceIsPlaying: boolean; 
   onTogglePlay: () => void; 
+  animationVariant: number;
 }
 
 const zapSequences: string[][] = [
@@ -25,7 +25,8 @@ const zapSequences: string[][] = [
 const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   audioUrl, width = 180, height = 180, 
   playButtonText = "Play Narration", isAnimationActive = false,
-  forceIsPlaying, onTogglePlay
+  forceIsPlaying, onTogglePlay,
+  animationVariant
 }) => {
   const [isAudioLoaded, setIsAudioLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -40,14 +41,17 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     if (svgContainerRef.current) { svgElementRef.current = svgContainerRef.current.firstChild as SVGSVGElement | null; }
   }, []);
 
-  // <<< CHANGE: This effect now controls the idle "Knight Rider" blip based on `isAnimationActive`.
+  // <<< FIX: ALL animation setup is now gated by `isAnimationActive`.
+  // If the user is not premium, these useEffects do nothing.
   useEffect(() => {
+    if (!isAnimationActive) return; // <-- MASTER SWITCH
+
     const svgElement = svgElementRef.current; if (!svgElement) return;
     const scanBlip = svgElement.querySelector('#scanBlip');
     const knightRiderPathElement = svgElement.querySelector('#Knight-rider');
     knightRiderTimelineRef.current?.kill();
     
-    if (isAnimationActive && scanBlip && knightRiderPathElement) {
+    if (scanBlip && knightRiderPathElement) {
         gsap.set(knightRiderPathElement, { opacity: 0.9 });
         gsap.set(scanBlip, { opacity: 1 });
         const blipTl = gsap.timeline({ paused: true });
@@ -56,32 +60,26 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
         const blipWidth = Math.floor(scanPathWidth * 0.20);
         gsap.set(scanBlip, { attr: { x: scanPathX_Start, width: blipWidth } });
         blipTl.to(scanBlip, { attr: { x: scanPathX_Start + scanPathWidth - blipWidth }, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: -1, repeatDelay: 0.15 });
-        blipTl.play(); // Play the idle animation by default
-    } else if (scanBlip) {
-        // If not active, ensure the blip is hidden.
-        gsap.set(scanBlip, { opacity: 0 });
+        blipTl.play(); // Start idle animation for premium user
     }
     return () => { knightRiderTimelineRef.current?.kill(); };
   }, [isAnimationActive]); 
 
-  // <<< CHANGE: This effect now ONLY controls the audio-synced "zap" and "particle" animations.
   useEffect(() => {
+    if (!isAnimationActive) return; // <-- MASTER SWITCH
+
     const svgElement = svgElementRef.current; if (!svgElement || animationVariant === undefined) return;
-    
     zapAnimationTimelineRef.current?.kill();
     particleTimelineRef.current?.kill();
 
     const zapTl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.5 });
     zapAnimationTimelineRef.current = zapTl;
-
     const currentZapSequence = zapSequences[animationVariant - 1] || zapSequences[0];
-    let zapTime = 0;
-    currentZapSequence.forEach(className => {
+    currentZapSequence.forEach((className, index) => {
         const elements = Array.from(svgElement.querySelectorAll(`.${className}`)).filter(el => el.id !== 'Inner-background');
         if (elements.length > 0) {
-            zapTl.fromTo(elements, { opacity: 1 }, { opacity: 0.2, duration: 0.4, yoyo: true, repeat: 1, stagger: 0.1 }, zapTime);
+            zapTl.fromTo(elements, { opacity: 1 }, { opacity: 0.2, duration: 0.4, yoyo: true, repeat: 1, stagger: 0.1 }, index * 0.3);
         }
-        zapTime += 0.3;
     });
     
     const particleTl = gsap.timeline({ paused: true, repeat: -1 });
@@ -89,8 +87,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     const particles = svgElement.querySelectorAll('.particle');
     if (particles.length > 0) {
         particleTl.to(particles, {
-            opacity: () => Math.random() * 0.9,
-            scale: () => Math.random() * 1.5,
+            opacity: () => Math.random() * 0.9, scale: () => Math.random() * 1.5,
             duration: 1, ease: 'power1.inOut', yoyo: true,
             stagger: { each: 0.05, from: "random", repeat: -1, yoyo: true }
         });
@@ -99,26 +96,28 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
         zapAnimationTimelineRef.current?.kill();
         particleTimelineRef.current?.kill(); 
     };
-  }, [animationVariant]);
+  }, [isAnimationActive, animationVariant]);
 
-  // This effect synchronizes playback state (audio and animations)
+  // <<< FIX: This is the main playback logic, now fully respecting the `isAnimationActive` rule.
   useEffect(() => {
     if (forceIsPlaying) {
-      // The blip is managed by isAnimationActive, so we just need to make sure it's playing
-      knightRiderTimelineRef.current?.play(); 
-      // The zap/particle animations ONLY play with audio
-      zapAnimationTimelineRef.current?.play(); 
-      particleTimelineRef.current?.play();
       audioRef.current?.play().catch(console.error);
+      // Only manipulate animations if the user is premium.
+      if (isAnimationActive) {
+        knightRiderTimelineRef.current?.pause(); // Pause idle blip
+        zapAnimationTimelineRef.current?.play();   // Play active effects
+        particleTimelineRef.current?.play();
+      }
     } else {
-      // If audio is paused, pause the audio-specific animations
-      zapAnimationTimelineRef.current?.pause();
-      particleTimelineRef.current?.pause();
-      // The blip keeps playing if active, so we don't pause it unless forceIsPlaying is its ONLY controller.
-      // But for our logic, we let the idle animation run, so we don't pause it here.
       audioRef.current?.pause();
+      // Only manipulate animations if the user is premium.
+      if (isAnimationActive) {
+        knightRiderTimelineRef.current?.play();    // Resume idle blip
+        zapAnimationTimelineRef.current?.pause();  // Pause active effects
+        particleTimelineRef.current?.pause();
+      }
     }
-  }, [forceIsPlaying]);
+  }, [forceIsPlaying, isAnimationActive]);
 
   useEffect(() => {
     const audioElement = audioRef.current; if (!audioElement) return;
@@ -144,7 +143,6 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
         <MyActualLogo width="100%" height="100%" /> 
       </div>
       <audio ref={audioRef} /> 
-      {/* <<< CHANGE: Only show the play button if an audioUrl actually exists. */}
       {audioUrl && (
         <Button onClick={onTogglePlay} disabled={!isAudioLoaded} variant="secondary" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold">
           {forceIsPlaying ? `Pause: ${playButtonText}` : `Play: ${playButtonText}`}
@@ -154,4 +152,5 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     </div>
   );
 };
+
 export default AnimatedLogoWithAudio;

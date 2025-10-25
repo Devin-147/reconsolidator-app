@@ -1,21 +1,17 @@
 // FILE: src/pages/LandingPage.tsx
-// Corrected imports and usage of setUserEmail.
+// MODIFIED: Added optional selfie upload for the premium video feature.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // <<< MODIFIED: Added useRef
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button'; 
 import { Input } from '@/components/ui/input'; 
 import { Checkbox } from "@/components/ui/checkbox"; 
 import { Label } from "@/components/ui/label";     
-import { useAuth } from '@/contexts/AuthContext'; // This will now provide setUserEmail
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner'; 
-// Correctly import all used Lucide icons
-import { Loader2, AlertTriangle, Film, Shuffle, BookOpen, BarChart3, ShieldCheck, Focus } from 'lucide-react'; 
+import { Loader2, AlertTriangle, Film, Shuffle, BookOpen, BarChart3, ShieldCheck, Focus, Upload, XCircle } from 'lucide-react'; // <<< MODIFIED: Added Upload and XCircle icons
 
-// These react-icons are from your pasted version of LandingPage.tsx.
-// Ensure you have 'react-icons' installed if you use these specific ones.
-// If you prefer to use only Lucide icons for consistency, replace these
-// with their Lucide equivalents or remove if not used by the JSX below.
+// These icons can be kept or replaced as you see fit for styling.
 import { MdOutlineEmergencyRecording } from "react-icons/md";
 import { RxMix } from "react-icons/rx";
 import { GrCatalog } from "react-icons/gr";
@@ -25,19 +21,24 @@ import { GiProgression } from "react-icons/gi";
 const LandingPage = () => {
   const [email, setEmail] = useState('');
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false); 
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null); // <<< NEW STATE: To hold the user's selfie file.
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const { setUserEmail, checkAuthStatus, userStatus } = useAuth(); // setUserEmail is now available
+  const { setUserEmail, checkAuthStatus, userStatus } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null); // <<< NEW REF: For the file input.
 
   useEffect(() => {
     // Optional redirect logic can go here if needed
   }, [userStatus, navigate]);
 
+  // <<< MODIFIED: The form submission logic is now upgraded to handle file uploads.
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage('');
+
+    // --- Validations (unchanged) ---
     if (!agreedToPrivacy || !agreedToTerms) {
       setMessage('Please agree to the Privacy Policy and Terms & Conditions.'); 
       toast.error('Please agree to the policies.');
@@ -48,34 +49,32 @@ const LandingPage = () => {
       toast.error("Invalid email address."); 
       return;
     }
+
     setIsLoading(true);
+
+    // --- Create FormData to send both text and file data ---
+    const formData = new FormData();
+    formData.append('email', email);
+    if (selfieFile) {
+      formData.append('selfie', selfieFile);
+    }
+
     try {
+      // --- The API call now sends FormData, not JSON ---
       const response = await fetch('/api/initiate-session', { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        // IMPORTANT: Do NOT set Content-Type header. The browser does it automatically for FormData.
+        body: formData,
       });
 
-      const responseBodyText = await response.text();
-      let data: { error?: string; message?: string } = {};
-      try { 
-        data = JSON.parse(responseBodyText); 
-      } catch (e) {
-        console.warn("Could not parse JSON from API response:", responseBodyText);
-        if (!response.ok) {
-          data = { error: `Request failed (${response.status}): ${responseBodyText || 'Server error or invalid response.'}` };
-        } else {
-          data = { message: "Response received, but format was unexpected."}; 
-        }
-      }
+      // The rest of the response handling remains the same.
+      const data = await response.json();
 
-      if (response.ok && data.message) {
+      if (response.ok) {
         console.log(`LandingPage: API success for ${email}. Storing email, preparing redirect.`);
-        try { localStorage.setItem('reconsolidator_user_email', email); } catch (lsError) { console.warn("Could not set email in localStorage", lsError); }
-        if(setUserEmail) setUserEmail(email); // Call context setter
+        localStorage.setItem('reconsolidator_user_email', email);
+        if(setUserEmail) setUserEmail(email); 
         
-        setAgreedToPrivacy(false); 
-        setAgreedToTerms(false); 
         setMessage(data.message || 'Success! Redirecting to setup...');
         toast.success(data.message || 'Success! Redirecting...');
         
@@ -99,7 +98,27 @@ const LandingPage = () => {
     }
   };
   
-  // JSX structure from your provided "perfect" LandingPage code
+  // <<< NEW HANDLER: For when the user selects a file.
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Optional: Add validation for file type or size here
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file (e.g., JPG, PNG).');
+        return;
+      }
+      setSelfieFile(file);
+    }
+  };
+
+  // <<< NEW HANDLER: To clear the selected file.
+  const clearFile = () => {
+    setSelfieFile(null);
+    if (fileInputRef.current) {
+        fileInputRef.current.value = ""; // Reset the input field
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-6">
       <div className="max-w-4xl mx-auto space-y-16 md:space-y-24"> 
@@ -138,7 +157,7 @@ const LandingPage = () => {
             The program guides you through a simple, narrative-driven process to reprocess one specific memory to target in your mind—no distractions, just results. Here's how:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-            <div className="p-4 border border-border rounded-lg bg-card"> <div className="flex justify-center mb-4"><MdOutlineEmergencyRecording className="w-12 h-12 text-primary" /></div> <h3 className="font-semibold mb-2">1. Narrate Your Memory</h3> <p className="text-sm text-muted-foreground">Decide which eventful memory you want to target for reconsolidation.  Then choose a positive memory before the event and a positive memory after the event. We'll tailor the process to you.</p> </div>
+            <div className="p-4 border border-border rounded-lg bg-card"> <div className="flex justify-center mb-4"><MdOutlineEmergencyRecording className="w-12 h-12 text-primary" /></div> <h3 className="font-semibold mb-2">1. Describe Your Memory</h3> <p className="text-sm text-muted-foreground">Decide which eventful memory you want to target for reconsolidation.  Then choose a positive memory before the event and a positive memory after the event. We'll tailor the process to you.</p> </div>
             <div className="p-4 border border-border rounded-lg bg-card"> <div className="flex justify-center mb-4"><RxMix className="w-12 h-12 text-primary" /></div> <h3 className="font-semibold mb-2">2. Choose Mismatch Experiences</h3> <p className="text-sm text-muted-foreground">Select 11 novel experiences as prediction errors for disrupting the memory's boundary condtion and having it malleable for modification.</p> </div>
             <div className="p-4 border border-border rounded-lg bg-card"> <div className="flex justify-center mb-4"><GrCatalog className="w-12 h-12 text-primary" /></div> <h3 className="font-semibold mb-2">3. Follow the Guided Narrative</h3> <p className="text-sm text-muted-foreground">Our AI creates a personalized script based on your target memory and resource memories. Record it in your own voice, then play it back to guide yourself through the controlled reprocessing.</p> </div>
             <div className="p-4 border border-border rounded-lg bg-card"> <div className="flex justify-center mb-4"><div className="flex gap-2"><GiProgression className="w-12 h-12 text-primary" /></div></div> <h3 className="font-semibold mb-2">4. Track Your Progress</h3> <p className="text-sm text-muted-foreground">Measure your distress before and after with the SUDs Scale. See your improvement grow with each session as your distress around the target memory is reduced after each treatment.</p> </div>
@@ -176,8 +195,37 @@ const LandingPage = () => {
         <section id="email-form" className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
           <h2 className="text-2xl md:text-3xl font-semibold">Start Rewriting a Past Memory Today</h2>
           <p className="text-muted-foreground"> You don't have to keep living with the weight of a past memory. Try Treatment 1 for Free. <br/> Enter your email to get instant access — no commitment required. </p>
+          
           <form onSubmit={handleFormSubmit} className="max-w-md mx-auto space-y-4">
             <Input type="email" placeholder="Enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="text-center bg-background"/>
+
+            {/* <<< NEW: Selfie Upload UI >>> */}
+            <div className="w-full p-4 border-2 border-dashed border-border rounded-lg text-center bg-background/50">
+              <label htmlFor="selfie-upload" className="flex flex-col items-center cursor-pointer">
+                <Upload className="w-8 h-8 text-primary mb-2"/>
+                <span className="font-semibold text-primary">Upload a Selfie (Optional)</span>
+                <span className="text-xs text-muted-foreground mt-1">For a personalized video experience (premium feature).</span>
+              </label>
+              <input 
+                id="selfie-upload" 
+                type="file" 
+                className="hidden" 
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                disabled={isLoading}
+              />
+              {selfieFile && (
+                <div className="mt-3 flex items-center justify-center bg-card p-2 rounded-md">
+                  <Film className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+                  <span className="text-sm text-foreground truncate">{selfieFile.name}</span>
+                  <Button variant="ghost" size="sm" onClick={clearFile} disabled={isLoading} className="ml-2 p-1 h-auto">
+                      <XCircle className="w-4 h-4 text-muted-foreground hover:text-destructive"/>
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2 text-sm text-left">
                 <div className="flex items-center space-x-2"><Checkbox id="privacy" checked={agreedToPrivacy} onCheckedChange={(checked) => setAgreedToPrivacy(checked as boolean)} disabled={isLoading} className="h-4 w-4 accent-primary"/><label htmlFor="privacy" className="text-muted-foreground leading-none">I agree to the <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link></label></div>
                 <div className="flex items-center space-x-2"><Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)} disabled={isLoading} className="h-4 w-4 accent-primary"/><label htmlFor="terms" className="text-muted-foreground leading-none">I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link></label></div>

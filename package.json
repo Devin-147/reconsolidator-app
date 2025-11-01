@@ -95,5 +95,12 @@
   },
   "overrides": {
     "esbuild": "0.25.0"
+  },
+  "vercel": {
+    "functions": {
+      "api/**/*.ts": {
+        "runtime": "@vercel/node@20.x"
+      }
+    }
   }
 }

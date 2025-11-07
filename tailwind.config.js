@@ -1,22 +1,15 @@
-// tailwind.config.js
+// FILE: tailwind.config.js
+// MODIFIED: Added keyframes and animations for the NeuralSpinner component.
+
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: "class", // Ensure class-based dark mode is enabled
+  darkMode: "class",
   content: [
-    "./index.html", // Scan index.html for classes
-    "./src/**/*.{js,ts,jsx,tsx}", // Scan all relevant files in src for classes
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    // If you have a 'container' section from shadcn setup, keep it here:
-    // container: {
-    //   center: true,
-    //   padding: "2rem",
-    //   screens: {
-    //     "2xl": "1400px",
-    //   },
-    // },
     extend: {
-      // Define colors based on CSS variables set in index.css
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -24,7 +17,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))", // This defines colors.primary.DEFAULT
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -52,23 +45,32 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
       },
-      // If you had borderRadius, keyframes, or animation extensions, keep them here:
-      // borderRadius: {
-      //   lg: "var(--radius)",
-      //   md: "calc(var(--radius) - 2px)",
-      //   sm: "calc(var(--radius) - 4px)",
-      // },
-      // keyframes: {
-      //   "accordion-down": { /* ... */ },
-      //   "accordion-up": { /* ... */ },
-      // },
-      // animation: {
-      //   "accordion-down": "accordion-down 0.2s ease-out",
-      //   "accordion-up": "accordion-up 0.2s ease-out",
-      // },
+      
+      // --- vvv THIS IS THE NEW BLOCK FOR THE NEURAL SPINNER vvv ---
+      keyframes: {
+        "pulse-slow": {
+          '0%, 100%': { 
+            transform: 'scale(0.1)',
+            opacity: '0.2',
+          },
+          '50%': { 
+            transform: 'scale(1)',
+            opacity: '0.75',
+          },
+        },
+        // You can keep your existing keyframes here if you have them,
+        // like "accordion-down" and "accordion-up".
+      },
+      animation: {
+        "pulse-slow": 'pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        "pulse-delay": 'pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) -1.25s infinite',
+        // You can keep your existing animations here too.
+      },
+      // --- ^^^ END OF NEW BLOCK ^^^ ---
+
     },
   },
   plugins: [
-    require("tailwindcss-animate") // Include the animate plugin
+    require("tailwindcss-animate")
   ],
 }

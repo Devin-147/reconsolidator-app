@@ -1,7 +1,8 @@
 // FILE: tailwind.config.js
-// MODIFIED: Added keyframes and animations for the NeuralSpinner component.
-
+// MODIFIED: Added fontFamily to use "Exo 2" as the default sans-serif font.
 /** @type {import('tailwindcss').Config} */
+import { fontFamily } from "tailwindcss/defaultTheme"; // <<< We need this import
+
 export default {
   darkMode: "class",
   content: [
@@ -10,6 +11,12 @@ export default {
   ],
   theme: {
     extend: {
+      // --- vvv THIS IS THE NEW FONTFAMILY BLOCK vvv ---
+      fontFamily: {
+        sans: ["Exo 2", ...fontFamily.sans],
+      },
+      // --- ^^^ END OF FONTFAMILY BLOCK ^^^ ---
+
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,7 +53,6 @@ export default {
         },
       },
       
-      // --- vvv THIS IS THE NEW BLOCK FOR THE NEURAL SPINNER vvv ---
       keyframes: {
         "pulse-slow": {
           '0%, 100%': { 
@@ -56,21 +62,3 @@ export default {
           '50%': { 
             transform: 'scale(1)',
             opacity: '0.75',
-          },
-        },
-        // You can keep your existing keyframes here if you have them,
-        // like "accordion-down" and "accordion-up".
-      },
-      animation: {
-        "pulse-slow": 'pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        "pulse-delay": 'pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) -1.25s infinite',
-        // You can keep your existing animations here too.
-      },
-      // --- ^^^ END OF NEW BLOCK ^^^ ---
-
-    },
-  },
-  plugins: [
-    require("tailwindcss-animate")
-  ],
-}

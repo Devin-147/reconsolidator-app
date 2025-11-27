@@ -194,7 +194,7 @@ const LandingPage = () => {
 
         <section id="email-form" className="text-center space-y-4 p-6 border border-primary rounded-lg bg-card shadow-lg">
           <h2 className="text-2xl md:text-3xl font-semibold">Start Rewriting a Past Memory Today</h2>
-          <p className="text-muted-foreground"> You don't have to keep living with the weight of a past memory. Try Treatment 1 for Free. <br/> Enter your email to get instant access — no commitment required. </p>
+          <p className="text-muted-foreground"> You don't have to continue living with the weight of a past memory. Try Treatment 1 for Free. <br/> Enter your email to get instant access — no commitment required. </p>
           
           <form onSubmit={handleFormSubmit} className="max-w-md mx-auto space-y-4">
             <Input type="email" placeholder="Enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="text-center bg-background"/>

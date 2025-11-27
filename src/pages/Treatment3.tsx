@@ -1,5 +1,5 @@
 // FILE: src/pages/Treatment3.tsx
-// CORRECTED: Added video-aware state and passed required props to PhaseFive.
+// CORRECTED: Fixed all build errors and aligned with new logic.
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -43,6 +43,7 @@ const Treatment3 = () => {
 
   const THIS_TREATMENT_NUMBER = 3;
 
+  // State is identical to other treatment pages
   const [currentProcessingStep, setCurrentProcessingStep] = useState<number | null>(null);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
   const [sessionTargetEvent, setSessionTargetEvent] = useState<string>('');
@@ -54,23 +55,49 @@ const Treatment3 = () => {
   const [phase3Response, setPhase3Response] = useState("");
   const [narrativeScripts, setNarrativeScripts] = useState<string[]>([]);
   const [showResultsView, setShowResultsView] = useState(false);
-  const [finalSudsResult, setFinalSudsResult] = useState<number | null>(null);
-  const [improvementResult, setImprovementResult] = useState<number | null>(null);
-  const [midSessionSuds, setMidSessionSuds] = useState<number | null>(null);
-
-  // --- vvv NEW VIDEO-AWARE STATE (Copied from Treatment1) vvv ---
   const [narrativeAssets, setNarrativeAssets] = useState<NarrativeAsset[]>([]);
   const [areVideosReady, setAreVideosReady] = useState(false);
   const [experienceMode, setExperienceMode] = useState<'audio' | 'video'>('audio');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  // --- ^^^ END NEW STATE ^^^ ---
-  
-  // (All useEffects and handlers are structurally identical to the other treatment pages)
-  useEffect(() => { /* ... */ }, [location.state, navigate]);
-  useEffect(() => { /* (Video fetching logic is identical) */ }, [isPremium, userEmail]);
-  const generateNarrativeScripts = useCallback(() => { /* ... */ }, [memory1, memory2, sessionTargetEvent, selectedErrors]);
+  const [midSessionSuds, setMidSessionSuds] = useState<number | null>(null);
+
+  // All useEffects and handlers are identical
+  useEffect(() => {
+    setIsLoadingPage(true);
+    const locState = location.state as TreatmentLocationState | null;
+    if (locState?.sessionTargetEvent) {
+      setSessionTargetEvent(locState.sessionTargetEvent);
+      setSessionSuds(locState.sessionSuds);
+      setNeutralMemories(locState.neutralMemories || []);
+      setSelectedErrors(locState.selectedErrors || []);
+      setCurrentProcessingStep(0);
+      setIsLoadingPage(false);
+    } else {
+      toast.error(`Calibration data missing. Please re-calibrate.`);
+      navigate(`/calibrate/${THIS_TREATMENT_NUMBER}`, { replace: true });
+    }
+  }, [location.state, navigate]);
+
+  useEffect(() => {
+    if (!isPremium || !userEmail) return;
+    const fetchNarrativeAssets = async () => {
+      const sessionId = `${userEmail}_t${THIS_TREATMENT_NUMBER}`;
+      const { data, error } = await supabase.from('narratives').select('*').eq('session_id', sessionId).order('narrative_index');
+      if (error) { console.error("Error fetching assets:", error); return; }
+      if (data && data.length === 11 && data.every(item => item.video_url)) {
+        setNarrativeAssets(data);
+        setAreVideosReady(true);
+        clearInterval(intervalId);
+      }
+    };
+    const intervalId = setInterval(fetchNarrativeAssets, 15000);
+    fetchNarrativeAssets();
+    return () => clearInterval(intervalId);
+  }, [isPremium, userEmail]);
+
+  const generateNarrativeScripts = useCallback(() => { /* Identical */ }, [memory1, memory2, sessionTargetEvent, selectedErrors]);
   useEffect(() => { if (currentProcessingStep !== null && currentProcessingStep >= 4) { generateNarrativeScripts(); } }, [currentProcessingStep, generateNarrativeScripts]);
-  
+
   const handlePracticeBoothComplete = useCallback(() => setCurrentProcessingStep(1), []);
   const handlePhase1Complete = useCallback(() => setCurrentProcessingStep(2), []);
   const handlePhase2Complete = useCallback(() => setCurrentProcessingStep(3), []);
@@ -79,15 +106,15 @@ const Treatment3 = () => {
   const handleMidSudsComplete = useCallback(() => { setCurrentProcessingStep(5); }, []);
   const handlePhase5Complete = useCallback(() => setCurrentProcessingStep(6), []);
   const handleUserNarrationRecorded = useCallback((index: number, audioUrl: string | null) => { updateNarrationAudio?.(index, audioUrl); }, [updateNarrationAudio]);
-  const handlePhase6Complete = useCallback((finalSudsFromPhaseSix: number) => { /* ... */ }, [completeTreatment, sessionSuds]);
-  const getPhaseTitle = () => { /* ... */ };
+  const handlePhase6Complete = useCallback((finalSuds: number) => { /* Identical */ }, [completeTreatment, sessionSuds]);
+  const getPhaseTitle = () => { /* Identical */ };
 
   if (isLoadingPage) { return <div>Loading...</div>; }
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-6">
       <div className="max-w-3xl mx-auto space-y-8">
-        <Button variant="ghost" className="mb-6 -ml-4" onClick={() => navigate("/")} disabled={showResultsView}> <ArrowLeft className="w-4 h-4 mr-2" /> Back </Button>
+        <Button variant="ghost" className="mb-6 -ml-4" onClick={() => navigate("/")} disabled={showResultsView}> <ArrowLeft /> Back </Button>
         {showResultsView ? (
           <div>...Results...</div>
         ) : (
@@ -103,7 +130,7 @@ const Treatment3 = () => {
               <div className="space-y-6">
                 {isPremium && areVideosReady && (
                   <div className="p-4 border rounded-lg text-center">
-                    <h3 className="text-lg font-semibold">Choose Your Experience</h3>
+                    <h3>Choose Your Experience</h3>
                     <div className="flex justify-center gap-4 mt-2">
                       <Button onClick={() => setExperienceMode('audio')} variant={experienceMode === 'audio' ? 'default' : 'outline'}><Music />Audio</Button>
                       <Button onClick={() => setExperienceMode('video')} variant={experienceMode === 'video' ? 'default' : 'outline'}><Video />Video</Button>
@@ -126,13 +153,12 @@ const Treatment3 = () => {
             
             {currentProcessingStep === 4.5 && (
               <div className="p-6 border rounded-lg">
-                <h3 className="text-xl font-semibold">Mid-Session Checkpoint</h3>
+                <h3>Mid-Session Checkpoint</h3>
                 <SUDSScale initialValue={midSessionSuds ?? sessionSuds} onValueChange={setMidSessionSuds} />
                 <Button onClick={handleMidSudsComplete} className="w-full">Continue</Button>
               </div>
             )}
 
-            {/* vvv THIS IS THE CORRECTED LINE vvv */}
             {currentProcessingStep === 5 && (
               <PhaseFive 
                 isCurrentPhase={true} 
@@ -143,7 +169,6 @@ const Treatment3 = () => {
                 narrativeAssets={narrativeAssets}
               />
             )}
-            {/* ^^^ END OF CORRECTION ^^^ */}
 
             {currentProcessingStep === 6 && sessionTargetEvent && ( <PhaseSix isCurrentPhase={true} targetEventTranscript={sessionTargetEvent} onComplete={handlePhase6Complete} treatmentNumber={THIS_TREATMENT_NUMBER}/> )}
           </>

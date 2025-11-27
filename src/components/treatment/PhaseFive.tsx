@@ -1,12 +1,11 @@
 // FILE: src/components/treatment/PhaseFive.tsx
-// UPGRADED: A dual-mode component that preserves all original audio logic
-// while adding the new visual thumbnail grid and reversal video playback.
+// CORRECTED: Fixed missing closing tags and JSX syntax errors.
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowDown, ArrowRight, Loader2, Check } from "lucide-react"; 
-import { type PredictionError } from "@/components/PredictionErrorSelector"; 
+import { ArrowDown, ArrowRight, Loader2, Check } from "lucide-react";
+import { type PredictionError } from "@/components/PredictionErrorSelector";
 import { NarrationRecorder } from "@/components/NarrationRecorder";
 import { useRecording } from "@/contexts/RecordingContext";
 import { toast } from "sonner";
@@ -14,7 +13,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import AnimatedLogoWithAudio from "@/components/AnimatedLogoWithAudio";
 import { NeuralSpinner } from "@/components/ui/NeuralSpinner";
 
-// This interface now includes the optional visual asset URLs
 interface NarrativeAsset {
   narrative_index: number;
   title: string;
@@ -22,63 +20,54 @@ interface NarrativeAsset {
   thumbnail_url: string | null;
 }
 
-interface PhaseFiveProps { 
-  isCurrentPhase: boolean; 
-  selectedPredictionErrors: PredictionError[]; 
-  onComplete: () => void; 
-  treatmentNumber: number; 
-  // --- NEW PROPS to make it video-aware ---
-  experienceMode: 'audio' | 'video'; 
-  narrativeAssets: NarrativeAsset[]; 
+interface PhaseFiveProps {
+  isCurrentPhase: boolean;
+  selectedPredictionErrors: PredictionError[];
+  onComplete: () => void;
+  treatmentNumber: number;
+  experienceMode: 'audio' | 'video';
+  narrativeAssets: NarrativeAsset[];
 }
 
-// This is your original interface, unchanged
-interface ReversedScriptItem { 
-  originalIndex: number; 
-  title: string; 
-  reversedText: string; 
-  aiAudioUrl?: string | null; 
-  isLoadingAi?: boolean; 
-  aiError?: string | null; 
+interface ReversedScriptItem {
+  originalIndex: number;
+  title: string;
+  reversedText: string;
+  aiAudioUrl?: string | null;
+  isLoadingAi?: boolean;
+  aiError?: string | null;
 }
 
-// --- vvv YOUR ENTIRE COMPONENT, NOW UPGRADED vvv ---
-export const PhaseFive: React.FC<PhaseFiveProps> = ({ 
+export const PhaseFive: React.FC<PhaseFiveProps> = ({
   isCurrentPhase, selectedPredictionErrors, onComplete, treatmentNumber,
-  experienceMode, narrativeAssets // Destructure new props
+  experienceMode, narrativeAssets
 }) => {
-  // --- All your existing state and context hooks are preserved ---
   const { memory1, memory2, targetEventTranscript: sessionTargetEvent, currentlyPlayingAiIndex, setCurrentlyPlayingAiIndex } = useRecording();
   const { accessLevel, userEmail } = useAuth();
   const [indicesForReversal, setIndicesForReversal] = useState<number[]>([]);
   const [reversedScriptObjects, setReversedScriptObjects] = useState<ReversedScriptItem[]>([]);
   const [isSelectionComplete, setIsSelectionComplete] = useState(false);
   const [userRecordedReverseAudios, setUserRecordedReverseAudios] = useState<(string|null)[]>([]);
-
-  // --- NEW state for the video path ---
   const [isGeneratingClips, setIsGeneratingClips] = useState(false);
   const [reversedVideoClips, setReversedVideoClips] = useState<{ originalIndex: number, videoUrl: string }[]>([]);
 
-  useEffect(() => { 
-    if (!isCurrentPhase) { 
-      // Reset all state when the phase is not active
-      setIndicesForReversal([]); 
-      setReversedScriptObjects([]); 
-      setIsSelectionComplete(false); 
+  useEffect(() => {
+    if (!isCurrentPhase) {
+      setIndicesForReversal([]);
+      setReversedScriptObjects([]);
+      setIsSelectionComplete(false);
       setUserRecordedReverseAudios([]);
       setIsGeneratingClips(false);
       setReversedVideoClips([]);
-    } 
+    }
   }, [isCurrentPhase]);
 
-  const handleNarrationToReverseSelect = useCallback((idx: number) => { 
-    setIndicesForReversal(p => p.includes(idx) ? p.filter(i => i !== idx) : (p.length < 8 ? [...p, idx] : p)); 
+  const handleNarrationToReverseSelect = useCallback((idx: number) => {
+    setIndicesForReversal(p => p.includes(idx) ? p.filter(i => i !== idx) : (p.length < 8 ? [...p, idx] : p));
   }, []);
 
-  // <<< UPGRADED Handler: Now handles both audio and video paths >>>
   const handleConfirmAndPrepare = async () => {
     if (indicesForReversal.length !== 8) { toast.error("Select 8 narratives."); return; }
-
     if (experienceMode === 'video') {
       setIsGeneratingClips(true);
       toast.info("Preparing your reversed visual clips...");
@@ -90,7 +79,6 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to generate clips.");
-        
         setReversedVideoClips(data.clips);
         toast.success("Reversed clips are ready!");
         setIsSelectionComplete(true);
@@ -100,12 +88,10 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
         setIsGeneratingClips(false);
       }
     } else {
-      // --- THIS IS YOUR ORIGINAL AUDIO LOGIC, 100% UNCHANGED ---
       generateAndPrepareReverseScripts();
     }
   };
   
-  // --- All your original functions are preserved ---
   const generateAndPrepareReverseScripts = useCallback(() => { /* Your original function, unchanged */ }, [indicesForReversal, memory1, memory2, sessionTargetEvent, selectedPredictionErrors, accessLevel]);
   const triggerSingleReverseAiLoad = useCallback(async (rIdx: number) => { /* Your original function, unchanged */ }, [reversedScriptObjects, userEmail, treatmentNumber]);
   useEffect(() => { /* Your original effect, unchanged */ }, [isSelectionComplete, accessLevel, reversedScriptObjects, triggerSingleReverseAiLoad]);
@@ -114,10 +100,9 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
   
   if (!isCurrentPhase) return null;
   
-  const allUserReversalsRecorded = isSelectionComplete && reversedScriptObjects.length > 0 && userRecordedReverseAudios.filter(Boolean).length === reversedScriptObjects.length;
+  const allUserReversalsRecorded = isSelectionComplete && experienceMode === 'audio' && reversedScriptObjects.length > 0 && userRecordedReverseAudios.filter(Boolean).length === reversedScriptObjects.length;
   const allVisualsReady = isSelectionComplete && experienceMode === 'video';
 
-  // <<< RENDER LOGIC >>>
   if (isGeneratingClips) {
     return (
         <div className="flex flex-col items-center justify-center h-64 p-6 border rounded-lg bg-card">
@@ -137,10 +122,8 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
       </div>
 
       {!isSelectionComplete ? (
-        // --- SELECTION UI ---
         <div className="space-y-4">
           {experienceMode === 'video' && narrativeAssets.length === 11 ? (
-            // --- NEW: THUMBNAIL GRID for Video Mode ---
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {narrativeAssets.map((asset) => (
                 <div 
@@ -153,4 +136,54 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
                     <p className="text-xs text-white font-medium truncate">{asset.title}</p>
                   </div>
                   {indicesForReversal.includes(asset.narrative_index - 1) && (
-                    <div className="absolute top-2
+                    <div className="absolute top-2 right-2 bg-primary rounded-full p-1"><Check className="w-4 h-4 text-primary-foreground" /></div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto p-2 border rounded">
+              <h4>Select 8 Narratives for Reversal:</h4>
+              {selectedPredictionErrors.map((pe, oi) => (<div key={pe.id} className="flex items-center gap-3"><Checkbox id={`rs-${pe.id}`} checked={indicesForReversal.includes(oi)} onCheckedChange={() => handleNarrationToReverseSelect(oi)} disabled={indicesForReversal.length >= 8 && !indicesForReversal.includes(oi)} /><label htmlFor={`rs-${pe.id}`} className="flex-1"><span className="font-medium">{pe.title}</span></label></div>))}
+            </div>
+          )}
+          <Button onClick={handleConfirmAndPrepare} disabled={indicesForReversal.length !== 8} className="w-full">
+            <ArrowDown className="w-4 h-4 mr-2" /> Confirm & Prepare Reversals
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {experienceMode === 'video' ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {reversedVideoClips.sort((a,b) => a.originalIndex - b.originalIndex).map(clip => (
+                <div key={clip.originalIndex} className="aspect-video">
+                  <video src={clip.videoUrl} controls muted loop autoPlay className="w-full h-full rounded-md object-cover" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {reversedScriptObjects.map((rs,rIdx)=>(
+                <div key={rs.originalIndex} className="p-3 bg-black/10 rounded-lg space-y-2 border">
+                  <p className="text-xs"><span className="italic">{rs.title}</span> (Reversed)</p>
+                  <div className="whitespace-pre-wrap text-sm p-2 bg-background rounded max-h-32 overflow-y-auto">{rs.reversedText}</div>
+                  <h5>Your Recording:</h5>
+                  <NarrationRecorder index={rIdx} onRecordingComplete={(url)=>handleUserReverseNarrationComplete(rIdx,url)} existingAudioUrl={userRecordedReverseAudios[rIdx]}/>
+                  {accessLevel==='premium_lifetime' && (
+                    <div>
+                      <h5>AI Version:</h5>
+                      {rs.isLoadingAi && <div><Loader2 className="inline animate-spin"/>Loading...</div>}
+                      {rs.aiError && <Button onClick={()=>triggerSingleReverseAiLoad(rIdx)}>Retry</Button>}
+                      {rs.aiAudioUrl && !rs.isLoadingAi && !rs.aiError && <AnimatedLogoWithAudio audioUrl={rs.aiAudioUrl} width={100} height={100} playButtonText={`Play Rev ${rIdx+1}`} animationVariant={rIdx+1} isAnimationActive={true} forceIsPlaying={currentlyPlayingAiIndex===-(rIdx+1)} onTogglePlay={()=>handleToggleReverseAiPlayback(rIdx)}/>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {(allUserReversalsRecorded || allVisualsReady) && (<Button onClick={onComplete} className="w-full mt-4">All Reversals Complete <ArrowRight className="w-4 h-4 ml-2"/></Button>)}
+        </div>
+      )}
+    </div>
+  );
+};

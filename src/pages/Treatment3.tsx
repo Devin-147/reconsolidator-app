@@ -1,5 +1,5 @@
 // FILE: src/pages/Treatment3.tsx
-// CORRECTED: Added the missing closing brace in a handler function.
+// CORRECTED: Added missing closing brace in a handler function.
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";

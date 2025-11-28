@@ -1,5 +1,5 @@
 // FILE: src/pages/Treatment3.tsx
-// CORRECTED: Fixed all build errors and aligned with new logic.
+// FINAL CORRECTED VERSION
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -40,14 +40,12 @@ const Treatment3 = () => {
   const { userEmail, accessLevel } = useAuth();
   const { memory1, memory2, updateNarrationAudio, completeTreatment } = useRecording();
   const isPremium = accessLevel === 'premium_lifetime';
-
   const THIS_TREATMENT_NUMBER = 3;
 
-  // State is identical to other treatment pages
   const [currentProcessingStep, setCurrentProcessingStep] = useState<number | null>(null);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
-  const [sessionTargetEvent, setSessionTargetEvent] = useState<string>('');
-  const [sessionSuds, setSessionSuds] = useState<number>(0);
+  const [sessionTargetEvent, setSessionTargetEvent] = useState('');
+  const [sessionSuds, setSessionSuds] = useState(0);
   const [neutralMemories, setNeutralMemories] = useState<string[]>([]);
   const [selectedErrors, setSelectedErrors] = useState<PredictionError[]>([]);
   const [phase1Response, setPhase1Response] = useState("");
@@ -61,7 +59,6 @@ const Treatment3 = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [midSessionSuds, setMidSessionSuds] = useState<number | null>(null);
 
-  // All useEffects and handlers are identical
   useEffect(() => {
     setIsLoadingPage(true);
     const locState = location.state as TreatmentLocationState | null;
@@ -95,7 +92,11 @@ const Treatment3 = () => {
     return () => clearInterval(intervalId);
   }, [isPremium, userEmail]);
 
-  const generateNarrativeScripts = useCallback(() => { /* Identical */ }, [memory1, memory2, sessionTargetEvent, selectedErrors]);
+  const generateNarrativeScripts = useCallback(() => {
+    if (!memory1 || !memory2 || !sessionTargetEvent || selectedErrors.length !== 11) return;
+    setNarrativeScripts(selectedErrors.map(e => `Imagine... ${e.description}.`));
+  }, [memory1, memory2, sessionTargetEvent, selectedErrors]);
+
   useEffect(() => { if (currentProcessingStep !== null && currentProcessingStep >= 4) { generateNarrativeScripts(); } }, [currentProcessingStep, generateNarrativeScripts]);
 
   const handlePracticeBoothComplete = useCallback(() => setCurrentProcessingStep(1), []);
@@ -106,8 +107,22 @@ const Treatment3 = () => {
   const handleMidSudsComplete = useCallback(() => { setCurrentProcessingStep(5); }, []);
   const handlePhase5Complete = useCallback(() => setCurrentProcessingStep(6), []);
   const handleUserNarrationRecorded = useCallback((index: number, audioUrl: string | null) => { updateNarrationAudio?.(index, audioUrl); }, [updateNarrationAudio]);
-  const handlePhase6Complete = useCallback((finalSuds: number) => { /* Identical */ }, [completeTreatment, sessionSuds]);
-  const getPhaseTitle = () => { /* Identical */ };
+  const handlePhase6Complete = useCallback((finalSuds: number) => { 
+      if (completeTreatment) {
+        completeTreatment(`Treatment ${THIS_TREATMENT_NUMBER}`, finalSuds, sessionSuds);
+        setShowResultsView(true);
+      }
+  }, [completeTreatment, sessionSuds]);
+  
+  const getPhaseTitle = () => {
+    if (currentProcessingStep === 0) return "Practice Session";
+    if (currentProcessingStep !== null && currentProcessingStep >= 1 && currentProcessingStep < 4) return `Processing Phase ${currentProcessingStep}`;
+    if (currentProcessingStep === 4) return experienceMode === 'audio' ? "Guided Narrations (Audio)" : "Visual Narratives (Video)";
+    if (currentProcessingStep === 4.5) return "Mid-Session Checkpoint";
+    if (currentProcessingStep === 5) return "Reverse Integration";
+    if (currentProcessingStep === 6) return "Final SUDS Rating";
+    return "Loading Phase...";
+  };
 
   if (isLoadingPage) { return <div>Loading...</div>; }
 
@@ -130,7 +145,7 @@ const Treatment3 = () => {
               <div className="space-y-6">
                 {isPremium && areVideosReady && (
                   <div className="p-4 border rounded-lg text-center">
-                    <h3>Choose Your Experience</h3>
+                    <h3 className="text-lg font-semibold">Choose Your Experience</h3>
                     <div className="flex justify-center gap-4 mt-2">
                       <Button onClick={() => setExperienceMode('audio')} variant={experienceMode === 'audio' ? 'default' : 'outline'}><Music />Audio</Button>
                       <Button onClick={() => setExperienceMode('video')} variant={experienceMode === 'video' ? 'default' : 'outline'}><Video />Video</Button>
@@ -153,7 +168,7 @@ const Treatment3 = () => {
             
             {currentProcessingStep === 4.5 && (
               <div className="p-6 border rounded-lg">
-                <h3>Mid-Session Checkpoint</h3>
+                <h3 className="text-xl font-semibold">Mid-Session Checkpoint</h3>
                 <SUDSScale initialValue={midSessionSuds ?? sessionSuds} onValueChange={setMidSessionSuds} />
                 <Button onClick={handleMidSudsComplete} className="w-full">Continue</Button>
               </div>

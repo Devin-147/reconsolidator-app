@@ -1,5 +1,5 @@
 // FILE: src/components/MyActualLogo.tsx
-// CORRECTED: Single, correct version with the neonGlow filter.
+// RECORRECTED: Single, correct version with the neonGlow filter.
 
 import React from 'react';
 

@@ -1,5 +1,5 @@
 // FILE: src/components/AnimatedLogoWithAudio.tsx
-// CORRECTED: Adds the new GSAP timeline to create the pulsing glow effect.
+// FINAL CORRECTED VERSION: Adds the GSAP timeline for the pulsing glow.
 
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
@@ -35,7 +35,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   const knightRiderTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const zapAnimationTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const particleTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const glowTimelineRef = useRef<gsap.core.Timeline | null>(null); // <<< NEW: Ref for the glow timeline
+  const glowTimelineRef = useRef<gsap.core.Timeline | null>(null); // Ref for the glow timeline
   const svgElementRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
@@ -44,23 +44,20 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
   
   // --- vvv NEW: Effect for the pulsing glow animation vvv ---
   useEffect(() => {
-    if (!isAnimationActive) return;
     const svgElement = svgElementRef.current;
     if (!svgElement) return;
 
-    // Target the blur element within the SVG filter we created
     const glowBlur = svgElement.querySelector('#neonGlow feGaussianBlur');
     glowTimelineRef.current?.kill();
 
     if (glowBlur) {
-      // Create a GSAP timeline that pulses the blurriness (stdDeviation)
-      const glowTl = gsap.timeline({ repeat: -1, yoyo: true });
+      const glowTl = gsap.timeline({ paused: true, repeat: -1, yoyo: true });
       glowTl.to(glowBlur, {
-        attr: { stdDeviation: 25 }, // Pulse out to a wider glow
+        attr: { stdDeviation: 25 },
         duration: 2.5,
         ease: 'power1.inOut',
       }).to(glowBlur, {
-        attr: { stdDeviation: 15 }, // Pulse back in to the base glow
+        attr: { stdDeviation: 15 },
         duration: 2.5,
         ease: 'power1.inOut',
       });
@@ -68,10 +65,9 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     }
 
     return () => { glowTimelineRef.current?.kill(); };
-  }, [isAnimationActive]);
+  }, []); // Runs once on mount to create the timeline
   // --- ^^^ END NEW EFFECT ^^^ ---
 
-  // (This useEffect for Knight Rider is unchanged)
   useEffect(() => {
     if (!isAnimationActive) return;
     const svgElement = svgElementRef.current; if (!svgElement) return;
@@ -91,7 +87,6 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     return () => { knightRiderTimelineRef.current?.kill(); };
   }, [isAnimationActive]); 
 
-  // (This useEffect for zaps and particles is unchanged)
   useEffect(() => {
     if (!isAnimationActive) return;
     const svgElement = svgElementRef.current; if (!svgElement || animationVariant === undefined) return;
@@ -122,13 +117,11 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     };
   }, [isAnimationActive, animationVariant]);
 
-  // <<< UPGRADED: The master playback controller now also handles the glow >>>
   useEffect(() => {
     if (forceIsPlaying) {
       audioRef.current?.play().catch(console.error);
       if (isAnimationActive) {
-        // When playing, we resume the glow from its current state
-        glowTimelineRef.current?.resume();
+        glowTimelineRef.current?.play(); // Play the glow
         knightRiderTimelineRef.current?.play();
         zapAnimationTimelineRef.current?.play();
         particleTimelineRef.current?.play();
@@ -136,8 +129,7 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     } else {
       audioRef.current?.pause();
       if (isAnimationActive) {
-        // When pausing, we also pause the glow animation
-        glowTimelineRef.current?.pause();
+        glowTimelineRef.current?.pause(); // Pause the glow
         knightRiderTimelineRef.current?.restart().pause();
         zapAnimationTimelineRef.current?.restart().pause();
         particleTimelineRef.current?.restart().pause();
@@ -145,12 +137,25 @@ const AnimatedLogoWithAudio: React.FC<AnimatedLogoWithAudioProps> = ({
     }
   }, [forceIsPlaying, isAnimationActive]);
 
-  // (The final two useEffects for audio are unchanged)
-  useEffect(() => { /* ... */ }, [audioUrl]);
-  useEffect(() => { /* ... */ }, [onTogglePlay]);
+  useEffect(() => {
+    const audioElement = audioRef.current; if (!audioElement) return;
+    if (audioUrl) { if (audioElement.src !== audioUrl) { audioElement.src = audioUrl; setIsAudioLoaded(false); } } 
+    else { audioElement.src = ""; setIsAudioLoaded(false); }
+  }, [audioUrl]);
+
+  useEffect(() => {
+    const audioElement = audioRef.current; if (!audioElement) return;
+    const handleCanPlayThrough = () => setIsAudioLoaded(true);
+    const handleAudioEnded = () => { if (onTogglePlay) onTogglePlay(); };
+    audioElement.addEventListener('canplaythrough', handleCanPlayThrough);
+    audioElement.addEventListener('ended', handleAudioEnded);
+    return () => { 
+      audioElement.removeEventListener('canplaythrough', handleCanPlayThrough);
+      audioElement.removeEventListener('ended', handleAudioEnded); 
+    };
+  }, [onTogglePlay]);
 
   return (
-    // (The return JSX is unchanged)
     <div className="flex flex-col items-center space-y-4 my-2">
       <div ref={svgContainerRef} style={{ width, height, overflow: 'visible' }}>
         <MyActualLogo width="100%" height="100%" /> 

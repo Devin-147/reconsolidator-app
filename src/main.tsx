@@ -1,8 +1,7 @@
 // src/main.tsx
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';                             // Import App (correct)
-import './globals.css'                                // Import global styles (correct)
+import App from './App';                             // Import App (correct)                       
 import { ThemeProvider } from './components/theme-provider'; // Import ThemeProvider (correct)
 import { AuthProvider } from './contexts/AuthContext';       // Import AuthProvider (correct)
 import { RecordingProvider } from './contexts/RecordingContext'; // <<< IMPORT RecordingProvider

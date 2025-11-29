@@ -4,12 +4,12 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-// import './globals.css'; // This line is now removed.
+// import './globals.css'; // This line is now permanently removed.
 import { ThemeProvider } from './components/theme-provider';
 import { AuthProvider } from './contexts/AuthContext';
 import { RecordingProvider } from './contexts/RecordingContext';
 
-// --- vvv THIS IS THE NEW INLINED CSS BLOCK vvv ---
+// --- vvv THIS IS THE INLINED CSS BLOCK vvv ---
 const css = `
   @tailwind base;
   @tailwind components;
@@ -41,7 +41,23 @@ const css = `
     .light {
       --background: 0 0% 100%;
       --foreground: 222.2 84% 4.9%;
-      /* ... other light mode variables ... */
+      --card: 0 0% 100%;
+      --card-foreground: 222.2 84% 4.9%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 222.2 84% 4.9%;
+      --primary: 186 98% 59%;
+      --primary-foreground: 222 47% 11%;
+      --secondary: 210 40% 96.1%;
+      --secondary-foreground: 222.2 47.4% 11.2%;
+      --muted: 210 40% 96.1%;
+      --muted-foreground: 215.4 16.3% 46.9%;
+      --accent: 210 40% 96.1%;
+      --accent-foreground: 222.2 47.4% 11.2%;
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 210 40% 98%;
+      --border: 214.3 31.8% 91.4%;
+      --input: 214.3 31.8% 91.4%;
+      --ring: 186 98% 59%;
     }
   }
 
@@ -60,7 +76,6 @@ const styleEl = document.createElement('style');
 styleEl.textContent = css;
 document.head.appendChild(styleEl);
 // --- ^^^ END OF NEW BLOCK ^^^ ---
-
 
 const container = document.getElementById("root");
 if (!container) { throw new Error("Root element with ID 'root' not found."); }

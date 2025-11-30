@@ -1,7 +1,8 @@
 // FILE: tailwind.config.js
-// MODIFIED: Added fontFamily to use "Exo 2" as the default sans-serif font.
+// CORRECTED: Includes "Exo 2" font and NeuralSpinner animations.
+
 /** @type {import('tailwindcss').Config} */
-import { fontFamily } from "tailwindcss/defaultTheme"; // <<< We need this import
+import { fontFamily } from "tailwindcss/defaultTheme";
 
 export default {
   darkMode: "class",
@@ -11,12 +12,9 @@ export default {
   ],
   theme: {
     extend: {
-      // --- vvv THIS IS THE NEW FONTFAMILY BLOCK vvv ---
       fontFamily: {
         sans: ["Exo 2", ...fontFamily.sans],
       },
-      // --- ^^^ END OF FONTFAMILY BLOCK ^^^ ---
-
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -52,7 +50,6 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
       },
-      
       keyframes: {
         "pulse-slow": {
           '0%, 100%': { 
@@ -62,3 +59,16 @@ export default {
           '50%': { 
             transform: 'scale(1)',
             opacity: '0.75',
+          },
+        },
+      },
+      animation: {
+        "pulse-slow": 'pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        "pulse-delay": 'pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) -1.25s infinite',
+      },
+    },
+  },
+  plugins: [
+    require("tailwindcss-animate")
+  ],
+}

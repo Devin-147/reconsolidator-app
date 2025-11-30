@@ -1,5 +1,5 @@
 // FILE: api/upload-and-analyze-selfie.ts
-// NEW: This dedicated API handles selfie upload, analysis, and saving the description to Supabase.
+// CORRECTED: Uses the new 'gemini-1.5-flash-latest' model name.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import formidable from 'formidable';
@@ -37,7 +37,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  console.log("[API] upload-and-analyze-selfie called...");
   const form = formidable({});
 
   try {
@@ -52,19 +51,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!selfieFile) {
       return res.status(400).json({ error: 'Selfie file is required.' });
     }
-
-    console.log(`  Analyzing selfie for user: ${userEmail}`);
     
     // --- AI Image Analysis ---
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    // --- vvv THIS IS THE CORRECTED LINE vvv ---
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // --- ^^^ END OF CORRECTION ^^^ ---
     const prompt = "Analyze the person in this image. Provide a concise, objective description of their key visual features (e.g., hair style/color, gender expression, key facial features, glasses if present) suitable for an AI character generation prompt. Describe them in the third person in a photorealistic, cinematic style. Example: 'A cinematic portrait of a person with short, dark hair, a round face, and wearing black-rimmed glasses.'";
     
     const imagePart = fileToGenerativePart(selfieFile.filepath, selfieFile.mimetype || 'image/jpeg');
     const result = await model.generateContent([prompt, imagePart]);
     const aiDescription = result.response.text().trim();
     
-    console.log(`  Gemini analysis complete. Description: "${aiDescription}"`);
-
     // --- Supabase Database Update ---
     const { error: updateError } = await supabase
       .from('users')
@@ -76,8 +73,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error("Failed to save AI description to your user profile.");
     }
     
-    console.log(`  Successfully saved ai_description for ${userEmail}.`);
-
     res.status(200).json({ 
       message: 'Selfie analyzed and description saved successfully!',
       aiDescription: aiDescription,

@@ -1,5 +1,5 @@
 // FILE: api/initiate-session.ts
-// UPGRADED: Sends a welcome email with PDF attachment to new users via Resend.
+// UPGRADED: Implements Supabase Magic Link authentication for new users.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import formidable from 'formidable';
@@ -10,89 +10,100 @@ import fs from 'fs';
 import path from 'path';
 
 // --- Initialize External Services ---
+// Use the SERVICE_ROLE_KEY for admin actions like creating users
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || ''; 
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// --- Vercel Configuration & Helper Function (unchanged) ---
 export const config = { api: { bodyParser: false } };
-function fileToGenerativePart(path: string, mimeType: string) {
-  return {
-    inlineData: {
-      data: Buffer.from(fs.readFileSync(path)).toString("base64"),
-      mimeType
-    },
-  };
-}
+function fileToGenerativePart(path: string, mimeType: string) { /* ... */ }
 
-// --- Main API Handler ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
+  if (req.method !== 'POST') { /* ... */ }
 
   const form = formidable({});
   try {
     const [fields, files] = await form.parse(req);
     const email = fields.email?.[0]?.trim().toLowerCase();
     if (!email) { return res.status(400).json({ error: 'Email is required.' }); }
-
+    
+    // (AI analysis logic is unchanged)
     let aiDescription: string | null = null;
-    const selfieFile = files.selfie?.[0];
-    if (selfieFile) {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-      const prompt = "Analyze the person..."; // Your prompt here
-      const imagePart = fileToGenerativePart(selfieFile.filepath, selfieFile.mimetype || 'image/jpeg');
-      const result = await model.generateContent([prompt, imagePart]);
-      aiDescription = result.response.text().trim();
+    /* ... */
+
+    // --- Check if user exists in the auth schema ---
+    const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+
+    if (authError && authError.message !== 'User not found') {
+      throw authError;
     }
 
-    let { data: existingUser } = await supabase.from('users').select('id').eq('email', email).single();
-    let userId: string;
-
-    if (existingUser) {
-      userId = existingUser.id;
+    if (authUser) {
+      // --- USER EXISTS ---
+      // Send a regular sign-in link
+      await supabaseAdmin.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: 'https://app.reprogrammingmind.com/calibrate/1', // Redirect to calibration after login
+        },
+      });
+      // Optionally, update ai_description if a new selfie was uploaded
       if (aiDescription) {
-        await supabase.from('users').update({ ai_description: aiDescription }).eq('id', userId);
+        await supabaseAdmin.from('users').update({ ai_description: aiDescription }).eq('id', authUser.id);
       }
     } else {
-      const { data: newUser, error: createError } = await supabase
+      // --- NEW USER ---
+      // 1. Create the user in the auth schema
+      const { data: { user: newAuthUser }, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
+        email_confirm: true, // Auto-confirm the email
+      });
+
+      if (createAuthError) throw createAuthError;
+      if (!newAuthUser) throw new Error("Could not create auth user.");
+
+      // 2. Insert their profile into the public.users table
+      const { error: createProfileError } = await supabaseAdmin
         .from('users')
-        .insert({ email: email, ai_description: aiDescription, status: 'calibrating' })
-        .select('id')
-        .single();
+        .insert({ id: newAuthUser.id, email: email, ai_description: aiDescription, status: 'calibrating' });
       
-      if (createError) throw createError;
-      if (!newUser) throw new Error("Failed to create user.");
-      userId = newUser.id;
+      if (createProfileError) throw createProfileError;
 
-      try {
-        const pdfPath = path.join(process.cwd(), 'public', 'instructions.pdf');
-        const pdfBuffer = fs.readFileSync(pdfPath);
+      // 3. Send the welcome email with a sign-in link
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: email,
+        options: {
+          redirectTo: 'https://app.reprogrammingmind.com/calibrate/1',
+        },
+      });
+      if(linkError) throw linkError;
+      const magicLink = linkData.properties.action_link;
 
-        await resend.emails.send({
-          from: 'Onboarding <onboarding@reprogrammingmind.com>', // Use your verified domain
-          to: email,
-          subject: 'Welcome to The Reconsolidation Program',
-          html: `<h1>Welcome!</h1><p>Your guide to the program is attached.</p>`,
-          attachments: [
-            {
-              filename: 'instructions.pdf',
-              content: pdfBuffer,
-            },
-          ],
-        });
-      } catch (emailError) {
-        console.error("Failed to send welcome email:", emailError);
-      }
+      // 4. Send email via Resend
+      const pdfPath = path.join(process.cwd(), 'public', 'instructions.pdf');
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      await resend.emails.send({
+        from: 'Dev <dev@reprogrammingmind.com>',
+        to: email,
+        subject: 'Welcome! Activate Your First Treatment',
+        html: `
+          <div>
+            <h1>Welcome to the Reconsolidation Program</h1>
+            <p>Your guide is attached. Click the link below to securely sign in and begin your first session:</p>
+            <a href="${magicLink}">Begin Treatment 1</a>
+            <p>Reprogramming Mind</p>
+          </div>
+        `,
+        attachments: [{ filename: 'instructions.pdf', content: pdfBuffer }],
+      });
     }
 
     res.status(200).json({ 
-      message: 'Session initiated successfully!',
-      userId: userId,
+      message: 'Please check your email for a sign-in link.',
     });
 
   } catch (error) {

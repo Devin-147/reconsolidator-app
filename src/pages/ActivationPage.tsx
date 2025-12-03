@@ -1,11 +1,11 @@
 // FILE: src/pages/ActivationPage.tsx
-// UPGRADED: Replaces all loading spinners with the new NeuralSpinner.
+// FINAL CORRECTED VERSION
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Info, ArrowRight, Mic, Square, AlertCircle, PartyPopper, Upload, XCircle, Sparkles, Lock } from "lucide-react";
-import { NeuralSpinner } from "@/components/ui/NeuralSpinner"; // <<< NEW: Import the NeuralSpinner
+import { NeuralSpinner } from "@/components/ui/NeuralSpinner";
 import SUDSScale from "../components/SUDSScale";
 import { useRecording } from "@/contexts/RecordingContext";
 import { MemoryControls } from "../components/MemoryControls";
@@ -44,7 +44,6 @@ const ActivationPage = () => {
   const [isUploadingSelfie, setIsUploadingSelfie] = useState(false);
   const [selfieAnalysisComplete, setSelfieAnalysisComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [isCalibrationComplete, setIsCalibrationComplete] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -64,10 +63,15 @@ const ActivationPage = () => {
     setIsUploadingSelfie(true);
     toast.info("Uploading and analyzing your selfie...");
     const formData = new FormData();
+    formData.append('action', 'analyzeSelfie');
     formData.append('selfie', file);
     formData.append('userEmail', userEmail);
+
     try {
-      const response = await fetch('/api/upload-and-analyze-selfie', { method: 'POST', body: formData });
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        body: formData,
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to analyze selfie.");
       toast.success("Analysis complete! Your description is saved.");
@@ -87,7 +91,6 @@ const ActivationPage = () => {
   };
 
   const handleFinishCalibration = async () => {
-    // (Validation logic is unchanged)
     if (!sessionTargetTranscriptFromCtx || selectedErrors.length !== 11 || neutralMemories.length < 1) {
       toast.error("Please complete all calibration steps."); return;
     }
@@ -125,7 +128,6 @@ const ActivationPage = () => {
   if (isSaving) {
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            {/* <<< REPLACEMENT #1 >>> */}
             <NeuralSpinner className="h-24 w-24" />
             <p className="mt-6 text-lg text-muted-foreground">Saving and preparing your personalized session...</p>
         </div>
@@ -151,7 +153,6 @@ const ActivationPage = () => {
         Calibration for Treatment {currentTreatmentNumber}
       </h2>
 
-      {/* --- STEP 1, 2, 3 (UNCHANGED) --- */}
       <section className="space-y-4 p-4 border rounded-lg bg-card shadow-md">
         <h3 className="text-lg font-semibold flex items-center text-white">1. Re-activate & Record Target Event</h3>
         <div className="flex items-center justify-between">
@@ -159,7 +160,7 @@ const ActivationPage = () => {
           : (<Button onClick={stopTargetRecording} variant="destructive" size="sm"><Square className="w-4 h-4 mr-2" /> Stop Recording ({formatTime(sessionTargetRecordingTime)})</Button>)}
         </div>
         {(isRecordingSessionTarget || sessionTargetTranscriptFromCtx) && (
-          <div className="mt-4 p-3 bg-muted/50 rounded border"><p className="text-sm">{isRecordingSessionTarget ? sessionTargetTranscriptFromCtx : sessionTargetTranscriptFromCtx}</p></div>
+          <div className="mt-4 p-3 bg-muted/50 rounded border"><p className="text-sm">{isRecordingSessionTarget ? sessionTargetLiveTranscript : sessionTargetTranscriptFromCtx}</p></div>
         )}
       </section>
 
@@ -176,7 +177,6 @@ const ActivationPage = () => {
         </div>
       </section>
       
-      {/* --- STEP 4: SELFIE UPLOAD --- */}
       <section className={`space-y-4 p-4 rounded-lg bg-card shadow-md border ${isPremium ? 'border-yellow-500' : 'border-gray-700'}`}>
         <h3 className="text-lg font-semibold flex items-center text-white">
           4. Personalized Visuals (Premium)
@@ -190,12 +190,10 @@ const ActivationPage = () => {
                   <span className="font-semibold text-primary">{selfieAnalysisComplete ? 'Analysis Complete' : 'Upload Selfie'}</span>
               </label>
               <input id="selfie-upload" type="file" className="hidden" accept="image/*" ref={fileInputRef} onChange={handleFileChange} disabled={isUploadingSelfie || selfieAnalysisComplete} />
-              
               {(selfieFile || isUploadingSelfie) && (
                   <div className="mt-3 flex items-center justify-center bg-muted/50 p-2 rounded-md">
                       {isUploadingSelfie ? (
                         <>
-                          {/* <<< REPLACEMENT #2 >>> */}
                           <NeuralSpinner className="w-6 h-6 mr-2" />
                           <span className="text-sm text-foreground truncate">Analyzing...</span>
                         </>
@@ -217,17 +215,16 @@ const ActivationPage = () => {
         )}
       </section>
 
-      {/* --- STEP 5 & 6 (UNCHANGED) --- */}
       <section>
         <h3 className="text-lg font-semibold text-white">5. List Neutral Memories</h3>
         <NeutralMemoryCollector neutralMemories={neutralMemories} setNeutralMemories={setNeutralMemories} />
       </section>
+      
       <section className="p-4 rounded-lg bg-card shadow-md">
         <h3 className="text-lg font-semibold text-white mb-4">6. Select 11 Prediction Errors</h3>
         <PredictionErrorSelector onComplete={handlePredictionErrorsComplete} />
       </section>
 
-      {/* --- FINAL SUBMIT BUTTON (UNCHANGED) --- */}
       <div className="flex justify-end pt-4">
         <Button onClick={handleFinishCalibration} size="lg">
           Finish Calibration & Prepare Session <ArrowRight className="w-5 h-5 ml-2"/>

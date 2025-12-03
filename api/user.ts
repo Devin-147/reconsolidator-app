@@ -2,9 +2,9 @@
 // FINAL CORRECTED VERSION
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import formidable, { Part } from 'formidable';
+import formidable from 'formidable';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
@@ -15,14 +15,13 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const config = { api: { bodyParser: false } };
 
-function fileToGenerativePart(path: string, mimeType: string): Part {
+function fileToGenerativePart(filePath: string, mimeType: string): Part {
   return {
-    value: fs.readFileSync(path),
-    options: {
-      filename: path,
-      contentType: mimeType,
+    inlineData: {
+      data: fs.readFileSync(filePath).toString("base64"),
+      mimeType,
     },
-  } as unknown as Part;
+  };
 }
 
 async function handleInitiateSession(req: VercelRequest, res: VercelResponse) {
@@ -90,18 +89,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     if (isMultiPart) {
         const form = formidable({});
+        // We need to parse fields to determine the action
         const [fields] = await form.parse(req);
         const action = fields.action?.[0];
-
+        
+        // Re-pass the request to the specific handler, which will re-parse it.
+        // This is not the most efficient, but it isolates logic cleanly.
         if (action === 'analyzeSelfie') {
             return await handleAnalyzeSelfie(req, res);
-        } else {
+        } else { // Default multipart action is initiateSession
             return await handleInitiateSession(req, res);
         }
     } else {
-        const { action } = req.body;
+        // Handle JSON-based requests
+        const { action, payload } = req.body;
         if (action === 'getUserStatus') {
-            return await handleGetUserStatus(req, res);
+            // Pass a mock request object with the payload in the body for the handler
+            return await handleGetUserStatus({ body: payload } as VercelRequest, res);
         }
         return res.status(400).json({ error: 'Invalid action for JSON request.' });
     }

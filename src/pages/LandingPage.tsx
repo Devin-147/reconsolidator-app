@@ -1,7 +1,7 @@
 // FILE: src/pages/LandingPage.tsx
-// MODIFIED: Added optional selfie upload for the premium video feature.
+// FINAL CORRECTED VERSION
 
-import React, { useState, useEffect, useRef } from 'react'; // <<< MODIFIED: Added useRef
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button'; 
 import { Input } from '@/components/ui/input'; 
@@ -9,43 +9,38 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";     
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner'; 
-import { Loader2, AlertTriangle, Film, Shuffle, BookOpen, BarChart3, ShieldCheck, Focus, Upload, XCircle } from 'lucide-react'; // <<< MODIFIED: Added Upload and XCircle icons
-
-// These icons can be kept or replaced as you see fit for styling.
+import { Loader2, AlertTriangle, Film, Shuffle, BookOpen, BarChart3, ShieldCheck, Focus, Upload, XCircle } from 'lucide-react';
 import { MdOutlineEmergencyRecording } from "react-icons/md";
 import { RxMix } from "react-icons/rx";
 import { GrCatalog } from "react-icons/gr";
 import { GiProgression } from "react-icons/gi";
-
+import { NeuralSpinner } from '@/components/ui/NeuralSpinner'; // Using the better spinner
 
 const LandingPage = () => {
   const [email, setEmail] = useState('');
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [selfieFile, setSelfieFile] = useState<File | null>(null); // <<< NEW STATE: To hold the user's selfie file.
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
   const { setUserEmail, checkAuthStatus, userStatus } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null); // <<< NEW REF: For the file input.
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Optional redirect logic can go here if needed
+    // Optional redirect logic can go here
   }, [userStatus, navigate]);
 
-  // <<< MODIFIED: The form submission logic is now upgraded to handle file uploads.
+  // <<< THIS IS THE ONLY FUNCTION THAT HAS CHANGED >>>
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage('');
 
-    // --- Validations (unchanged) ---
     if (!agreedToPrivacy || !agreedToTerms) {
-      setMessage('Please agree to the Privacy Policy and Terms & Conditions.'); 
       toast.error('Please agree to the policies.');
       return;
     }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
-      setMessage("Please enter a valid email address."); 
       toast.error("Invalid email address."); 
       return;
     }
@@ -55,54 +50,36 @@ const LandingPage = () => {
     // --- Create FormData to send both text and file data ---
     const formData = new FormData();
     formData.append('email', email);
+    formData.append('action', 'initiateSession'); // Specify the action
     if (selfieFile) {
       formData.append('selfie', selfieFile);
     }
 
     try {
-      // --- The API call now sends FormData, not JSON ---
-      const response = await fetch('/api/initiate-session', { 
+      const response = await fetch('/api/user', { 
         method: 'POST',
-        // IMPORTANT: Do NOT set Content-Type header. The browser does it automatically for FormData.
         body: formData,
       });
 
-      // The rest of the response handling remains the same.
       const data = await response.json();
 
       if (response.ok) {
-        console.log(`LandingPage: API success for ${email}. Storing email, preparing redirect.`);
-        localStorage.setItem('reconsolidator_user_email', email);
         if(setUserEmail) setUserEmail(email); 
-        
-        setMessage(data.message || 'Success! Redirecting to setup...');
-        toast.success(data.message || 'Success! Redirecting...');
-        
-        if (checkAuthStatus) await checkAuthStatus(); 
-        
-        setTimeout(() => {
-          console.log("LandingPage: Navigating to / (Calibration Setup)");
-          navigate('/'); 
-        }, 300);
+        toast.success(data.message || 'Please check your email for a sign-in link.');
       } else {
-        const errorMsg = data.error || `Request failed: ${response.status}. Please try again.`;
-        setMessage(errorMsg);
-        toast.error(errorMsg);
+        throw new Error(data.error || `Request failed. Please try again.`);
       }
     } catch (error: any) {
-      console.error('LandingPage FormSubmit Error:', error);
-      setMessage('An error occurred. Please check your connection and try again.');
-      toast.error('An error occurred. Check connection.');
+      setMessage(error.message);
+      toast.error('An error occurred', { description: error.message });
     } finally {
       setIsLoading(false);
     }
   };
   
-  // <<< NEW HANDLER: For when the user selects a file.
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Optional: Add validation for file type or size here
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file (e.g., JPG, PNG).');
         return;
@@ -111,11 +88,10 @@ const LandingPage = () => {
     }
   };
 
-  // <<< NEW HANDLER: To clear the selected file.
   const clearFile = () => {
     setSelfieFile(null);
     if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Reset the input field
+        fileInputRef.current.value = "";
     }
   };
 
@@ -199,7 +175,6 @@ const LandingPage = () => {
           <form onSubmit={handleFormSubmit} className="max-w-md mx-auto space-y-4">
             <Input type="email" placeholder="Enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="text-center bg-background"/>
 
-            {/* <<< NEW: Selfie Upload UI >>> */}
             <div className="w-full p-4 border-2 border-dashed border-border rounded-lg text-center bg-background/50">
               <label htmlFor="selfie-upload" className="flex flex-col items-center cursor-pointer">
                 <Upload className="w-8 h-8 text-primary mb-2"/>
@@ -231,7 +206,7 @@ const LandingPage = () => {
                 <div className="flex items-center space-x-2"><Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)} disabled={isLoading} className="h-4 w-4 accent-primary"/><label htmlFor="terms" className="text-muted-foreground leading-none">I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link></label></div>
              </div>
             <Button type="submit" size="lg" disabled={isLoading || !agreedToPrivacy || !agreedToTerms} className="w-full bg-primary hover:bg-primary/80 text-primary-foreground py-3 text-base font-semibold">
-                {isLoading ? <Loader2 className="animate-spin h-5 w-5 mr-2"/> : 'Start Treatment Setup'}
+                {isLoading ? <NeuralSpinner className="h-5 w-5"/> : 'Start Treatment Setup'}
             </Button>
           </form>
           {message && (<p className={`mt-4 text-sm ${message.startsWith('Success') ? 'text-green-500' : 'text-red-500'}`}>{message}</p>)}

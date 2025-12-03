@@ -1,5 +1,5 @@
 // FILE: src/pages/Treatment2.tsx
-// FINAL, METICULOUSLY CHECKED VERSION
+// FINAL CORRECTED VERSION
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -109,14 +109,50 @@ const Treatment2 = () => {
   const handleMidSudsComplete = useCallback(() => { if (midSessionSuds !== null) setCurrentProcessingStep(5); else toast.error("Please rate your SUDS."); }, [midSessionSuds]);
   const handlePhase5Complete = useCallback(() => setCurrentProcessingStep(6), []);
   const handleUserNarrationRecorded = useCallback((index: number, audioUrl: string | null) => { updateNarrationAudio?.(index, audioUrl); }, [updateNarrationAudio]);
-  const handlePhase6Complete = useCallback((finalSuds: number) => {
-      if (completeTreatment) {
+  
+  // --- vvv THIS IS THE UPGRADED FUNCTION vvv ---
+  const handlePhase6Complete = useCallback(async (finalSuds: number) => {
+      if (completeTreatment && userEmail) {
         completeTreatment(`Treatment ${THIS_TREATMENT_NUMBER}`, finalSuds, sessionSuds);
         setFinalSudsResult(finalSuds);
-        if(sessionSuds > 0) setImprovementResult(((sessionSuds - finalSuds) / sessionSuds) * 100);
+        const improvement = sessionSuds > 0 ? ((sessionSuds - finalSuds) / sessionSuds) * 100 : 0;
+        setImprovementResult(improvement);
         setShowResultsView(true);
+
+        // Save progress to the database
+        await fetch('/api/complete-treatment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            userEmail, 
+            treatmentNumber: THIS_TREATMENT_NUMBER, 
+            finalSuds,
+            initialSuds: sessionSuds
+          }),
+        });
+
+        // Send the summary email
+        const resultPayload = {
+          treatmentNumber: THIS_TREATMENT_NUMBER,
+          initialSuds: sessionSuds,
+          finalSuds: finalSuds,
+          improvementPercentage: improvement,
+          isImprovement: improvement >= 0,
+          completedAt: new Date().toISOString(),
+        };
+
+        await fetch('/api/emails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'sendSummary',
+                userEmail: userEmail,
+                payload: resultPayload
+            })
+        });
       }
-  }, [completeTreatment, sessionSuds]);
+  }, [completeTreatment, sessionSuds, userEmail]);
+  // --- ^^^ END OF UPGRADED FUNCTION ^^^ ---
 
   const getPhaseTitle = () => {
     if (currentProcessingStep === 0) return "Practice Session";

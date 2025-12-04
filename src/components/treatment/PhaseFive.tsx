@@ -78,16 +78,11 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'generateReversed',
-            payload: {
-              userEmail,
-              treatmentNumber,
-              indices: indicesForReversal
-            }
+            payload: { userEmail, treatmentNumber, indices: indicesForReversal }
           })
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to generate clips.");
-        
         setReversedVideoClips(data.clips);
         toast.success("Reversed clips are ready!");
         setIsSelectionComplete(true);
@@ -102,25 +97,17 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
   };
   
   const generateAndPrepareReverseScripts = useCallback(() => {
-    if (indicesForReversal.length !== 8 || !memory1 || !memory2 || !sessionTargetEvent || selectedPredictionErrors.length < 11) {
-        toast.error("Base data missing for script generation.");
-        return;
-    }
+    if (!memory1 || !memory2 || !sessionTargetEvent || !selectedPredictionErrors || selectedPredictionErrors.length < 11) { toast.error("Base data missing."); return; }
     const newReversedItems: ReversedScriptItem[] = indicesForReversal.map(idx => {
-        const pe = selectedPredictionErrors[idx];
-        return {
-            originalIndex: idx,
-            title: pe.title,
-            reversedText: `Reverse Script (7s max):\n${memory2}\nThen, ${pe.description}\nThen, ${sessionTargetEvent}\nThen, ${memory1}`,
-            aiAudioUrl: null, isLoadingAi: false, aiError: null
-        };
+      const pe = selectedPredictionErrors[idx];
+      return { originalIndex: idx, title: pe.title, reversedText: `Reverse Script (7s max):\n${memory2}\nThen, ${pe.description}\nThen, ${sessionTargetEvent}\nThen, ${memory1}`, aiAudioUrl: null, isLoadingAi: false, aiError: null };
     });
     setReversedScriptObjects(newReversedItems);
     setUserRecordedReverseAudios(Array(8).fill(null));
     setIsSelectionComplete(true);
-    toast.success("Reverse audio scripts prepared.");
-  }, [indicesForReversal, memory1, memory2, sessionTargetEvent, selectedPredictionErrors, accessLevel]);
-  
+    toast.success("Reverse scripts prepared.");
+  }, [indicesForReversal, memory1, memory2, sessionTargetEvent, selectedPredictionErrors]);
+
   const triggerSingleReverseAiLoad = useCallback(async (rIdx: number) => {
     // This logic remains for the audio path
   }, [reversedScriptObjects, userEmail, treatmentNumber]);
@@ -132,17 +119,19 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
   }, [isSelectionComplete, experienceMode, accessLevel, reversedScriptObjects, triggerSingleReverseAiLoad]);
   
   const handleUserReverseNarrationComplete = useCallback((idx: number, url: string|null) => {
-    setUserRecordedReverseAudios(p => {
-        const n=[...p];
-        if(idx>=0 && idx<n.length) { n[idx]=url; }
-        return n;
-    });
+    setUserRecordedReverseAudios(p => { const n=[...p]; if(idx>=0 && idx<n.length){n[idx]=url;} return n; });
   }, []);
   
+  // vvv THIS IS THE CORRECTED FUNCTION vvv
   const handleToggleReverseAiPlayback = (rIdx: number) => {
     const pId = -(rIdx + 1);
-    setCurrentlyPlayingAiIndex?.(prev => prev === pId ? null : pId);
+    if (currentlyPlayingAiIndex === pId) {
+      setCurrentlyPlayingAiIndex?.(null);
+    } else {
+      setCurrentlyPlayingAiIndex?.(pId);
+    }
   };
+  // ^^^ END OF CORRECTION ^^^
   
   if (!isCurrentPhase) return null;
   

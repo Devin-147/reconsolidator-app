@@ -64,3 +64,10 @@
     min-height: 100vh;
   }
 }
+/* --- vvv ADD THIS NEW BLOCK AT THE END OF YOUR CSS FILE vvv --- */
+
+@layer components {
+  .glass-card {
+    @apply border border-white/10 bg-black/30 backdrop-blur-lg;
+  }
+}

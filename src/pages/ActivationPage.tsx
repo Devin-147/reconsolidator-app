@@ -27,6 +27,15 @@ const containerVariants: Variants = {
   },
 };
 
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
 const ActivationPage = () => {
   const navigate = useNavigate();
   const { treatmentNumber: treatmentNumberString } = useParams<{ treatmentNumber: string }>();

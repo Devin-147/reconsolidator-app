@@ -110,7 +110,6 @@ const Treatment2 = () => {
   const handlePhase5Complete = useCallback(() => setCurrentProcessingStep(6), []);
   const handleUserNarrationRecorded = useCallback((index: number, audioUrl: string | null) => { updateNarrationAudio?.(index, audioUrl); }, [updateNarrationAudio]);
   
-  // --- vvv THIS IS THE UPGRADED FUNCTION vvv ---
   const handlePhase6Complete = useCallback(async (finalSuds: number) => {
       if (completeTreatment && userEmail) {
         completeTreatment(`Treatment ${THIS_TREATMENT_NUMBER}`, finalSuds, sessionSuds);
@@ -119,19 +118,20 @@ const Treatment2 = () => {
         setImprovementResult(improvement);
         setShowResultsView(true);
 
-        // Save progress to the database
-        await fetch('/api/complete-treatment', {
+        await fetch('/api/treatment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            userEmail, 
-            treatmentNumber: THIS_TREATMENT_NUMBER, 
-            finalSuds,
-            initialSuds: sessionSuds
+          body: JSON.stringify({
+            action: 'completeTreatment',
+            payload: { 
+              userEmail, 
+              treatmentNumber: THIS_TREATMENT_NUMBER, 
+              finalSuds,
+              initialSuds: sessionSuds 
+            }
           }),
         });
 
-        // Send the summary email
         const resultPayload = {
           treatmentNumber: THIS_TREATMENT_NUMBER,
           initialSuds: sessionSuds,
@@ -152,7 +152,6 @@ const Treatment2 = () => {
         });
       }
   }, [completeTreatment, sessionSuds, userEmail]);
-  // --- ^^^ END OF UPGRADED FUNCTION ^^^ ---
 
   const getPhaseTitle = () => {
     if (currentProcessingStep === 0) return "Practice Session";

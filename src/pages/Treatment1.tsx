@@ -112,32 +112,35 @@ const Treatment1 = () => {
   
   const handlePhase6Complete = useCallback(async (finalSuds: number) => {
       if (completeTreatment && userEmail) {
+        // Local state updates (unchanged)
         completeTreatment(`Treatment ${THIS_TREATMENT_NUMBER}`, finalSuds, sessionSuds);
         setFinalSudsResult(finalSuds);
         const improvement = sessionSuds > 0 ? ((sessionSuds - finalSuds) / sessionSuds) * 100 : 0;
         setImprovementResult(improvement);
         setShowResultsView(true);
 
-        await fetch('/api/complete-treatment', {
+        // --- vvv NEW: API call to save progress to the database vvv ---
+        await fetch('/api/treatment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            userEmail, 
-            treatmentNumber: THIS_TREATMENT_NUMBER, 
-            finalSuds,
-            initialSuds: sessionSuds
+          body: JSON.stringify({
+            action: 'completeTreatment',
+            payload: { 
+              userEmail, 
+              treatmentNumber: THIS_TREATMENT_NUMBER, 
+              finalSuds,
+              initialSuds: sessionSuds 
+            }
           }),
         });
+        // --- ^^^ END OF NEW CALL ^^^ ---
 
+        // --- vvv NEW: API call to send summary email vvv ---
         const resultPayload = {
-          treatmentNumber: THIS_TREATMENT_NUMBER,
-          initialSuds: sessionSuds,
-          finalSuds: finalSuds,
-          improvementPercentage: improvement,
-          isImprovement: improvement >= 0,
+          treatmentNumber: THIS_TREATMENT_NUMBER, initialSuds: sessionSuds, finalSuds,
+          improvementPercentage: improvement, isImprovement: improvement >= 0,
           completedAt: new Date().toISOString(),
         };
-
         await fetch('/api/emails', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -147,6 +150,7 @@ const Treatment1 = () => {
                 payload: resultPayload
             })
         });
+        // --- ^^^ END OF NEW CALL ^^^ ---
       }
   }, [completeTreatment, sessionSuds, userEmail]);
 

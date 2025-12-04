@@ -118,14 +118,17 @@ const Treatment4 = () => {
         setImprovementResult(improvement);
         setShowResultsView(true);
 
-        await fetch('/api/complete-treatment', {
+        await fetch('/api/treatment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            userEmail, 
-            treatmentNumber: THIS_TREATMENT_NUMBER, 
-            finalSuds,
-            initialSuds: sessionSuds
+          body: JSON.stringify({
+            action: 'completeTreatment',
+            payload: { 
+              userEmail, 
+              treatmentNumber: THIS_TREATMENT_NUMBER, 
+              finalSuds,
+              initialSuds: sessionSuds 
+            }
           }),
         });
 

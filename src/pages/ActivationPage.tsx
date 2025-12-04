@@ -97,10 +97,17 @@ const ActivationPage = () => {
     setIsSaving(true);
     toast.info("Saving your calibration and preparing your session...");
     try {
-        const response = await fetch('/api/save-and-generate-narratives', {
+        const response = await fetch('/api/treatment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userEmail, narratives: selectedErrors, treatmentNumber: currentTreatmentNumber }),
+            body: JSON.stringify({ 
+                action: 'saveAndGenerate',
+                payload: {
+                    userEmail, 
+                    narratives: selectedErrors, 
+                    treatmentNumber: currentTreatmentNumber 
+                }
+            }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to save calibration.");

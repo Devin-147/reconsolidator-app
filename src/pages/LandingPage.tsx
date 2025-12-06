@@ -1,20 +1,19 @@
 // FILE: src/pages/LandingPage.tsx
-// FINAL CORRECTED VERSION
+// FINAL CORRECTED VERSION: Implements robust HTML5 email validation.
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button'; 
 import { Input } from '@/components/ui/input'; 
 import { Checkbox } from "@/components/ui/checkbox"; 
-import { Label } from "@/components/ui/label";     
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner'; 
-import { Loader2, AlertTriangle, Film, Shuffle, BookOpen, BarChart3, ShieldCheck, Focus, Upload, XCircle } from 'lucide-react';
+import { AlertTriangle, Film, Upload, XCircle } from 'lucide-react';
 import { MdOutlineEmergencyRecording } from "react-icons/md";
 import { RxMix } from "react-icons/rx";
 import { GrCatalog } from "react-icons/gr";
 import { GiProgression } from "react-icons/gi";
-import { NeuralSpinner } from '@/components/ui/NeuralSpinner'; // Using the better spinner
+import { NeuralSpinner } from '@/components/ui/NeuralSpinner';
 
 const LandingPage = () => {
   const [email, setEmail] = useState('');
@@ -24,33 +23,33 @@ const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const { setUserEmail, checkAuthStatus, userStatus } = useAuth();
+  const { setUserEmail } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    // Optional redirect logic can go here
-  }, [userStatus, navigate]);
-
-  // <<< THIS IS THE ONLY FUNCTION THAT HAS CHANGED >>>
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage('');
 
     if (!agreedToPrivacy || !agreedToTerms) {
-      toast.error('Please agree to the policies.');
+      toast.error('Please agree to the policies to continue.');
       return;
     }
-    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
-      toast.error("Invalid email address."); 
-      return;
+    
+    // --- vvv THIS IS THE HTML5 VALIDATION FIX vvv ---
+    // The <Input type="email" required /> now handles all the complex validation.
+    // We just check if the form is valid before submitting.
+    const form = event.currentTarget;
+    if (!form.checkValidity()) {
+        toast.error("Please enter a valid email address.");
+        return;
     }
+    // --- ^^^ END OF FIX ^^^ ---
 
     setIsLoading(true);
 
-    // --- Create FormData to send both text and file data ---
     const formData = new FormData();
     formData.append('email', email);
-    formData.append('action', 'initiateSession'); // Specify the action
+    formData.append('action', 'initiateSession');
     if (selfieFile) {
       formData.append('selfie', selfieFile);
     }
@@ -202,8 +201,8 @@ const LandingPage = () => {
             </div>
 
             <div className="space-y-2 text-sm text-left">
-                <div className="flex items-center space-x-2"><Checkbox id="privacy" checked={agreedToPrivacy} onCheckedChange={(checked) => setAgreedToPrivacy(checked as boolean)} disabled={isLoading} className="h-4 w-4 accent-primary"/><label htmlFor="privacy" className="text-muted-foreground leading-none">I agree to the <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link></label></div>
-                <div className="flex items-center space-x-2"><Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)} disabled={isLoading} className="h-4 w-4 accent-primary"/><label htmlFor="terms" className="text-muted-foreground leading-none">I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link></label></div>
+                <div className="flex items-center space-x-2"><Checkbox id="privacy" checked={agreedToPrivacy} onCheckedChange={(checked) => setAgreedToPrivacy(checked as boolean)} disabled={isLoading} /><label htmlFor="privacy" className="text-muted-foreground leading-none">I agree to the <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link></label></div>
+                <div className="flex items-center space-x-2"><Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)} disabled={isLoading} /><label htmlFor="terms" className="text-muted-foreground leading-none">I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link></label></div>
              </div>
             <Button type="submit" size="lg" disabled={isLoading || !agreedToPrivacy || !agreedToTerms} className="w-full bg-primary hover:bg-primary/80 text-primary-foreground py-3 text-base font-semibold">
                 {isLoading ? <NeuralSpinner className="h-5 w-5"/> : 'Start Treatment Setup'}

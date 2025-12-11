@@ -5,6 +5,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import formidable from 'formidable';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import fs from 'fs';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
@@ -15,13 +16,13 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 export const config = { api: { bodyParser: false } };
 
 function fileToGenerativePart(filePath: string, mimeType: string): Part {
-  return { // <<< THIS RETURN WAS MISSING
+  return {
     inlineData: {
       data: fs.readFileSync(filePath).toString("base64"),
       mimeType,
     },
   };
-}
+} // <<< THIS BRACE WAS MISSING
 
 async function handleInitiateSession(req: VercelRequest, res: VercelResponse) {
     const form = formidable({});
@@ -91,4 +92,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Invalid action for JSON request.' });
         }
     } catch(error) {
-        return res.status(500).jso
+        return res.status(500).json({ error: (error as Error).message });
+    }
+}

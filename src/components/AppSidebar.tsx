@@ -1,15 +1,16 @@
 // FILE: src/components/AppSidebar.tsx
-// Corrected syntax for button className
+// MODIFIED: Hides itself on the landing page.
 
-import React, { useEffect } from 'react'; // Added useEffect for logging
+import React, in { useEffect } from 'react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { CheckCircle, FileText, Mic } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { type TreatmentResult } from "@/types/recording";
 import { useRecording } from '@/contexts/RecordingContext';
 
 const AppSidebar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     showsSidebar,
     calibrationSuds, 
@@ -20,16 +21,12 @@ const AppSidebar = () => {
     memoriesSaved,
   } = useRecording();
 
-  // Log to see if the component re-renders when calibrationSuds changes in context
-  useEffect(() => {
-    console.log("AppSidebar: calibrationSuds from context is now:", calibrationSuds);
-  }, [calibrationSuds]);
-
-  console.log("AppSidebar: Rendering. showsSidebar:", showsSidebar, "Initial SUDS for display:", calibrationSuds);
-
-  if (!showsSidebar) {
+  // --- vvv THIS IS THE NEW HIDING LOGIC vvv ---
+  const isLandingPage = location.pathname === '/';
+  if (isLandingPage) {
      return null; 
   }
+  // --- ^^^ END OF HIDING LOGIC ^^^ ---
 
   const sortedTreatments = [...(completedTreatments || [])].sort((a, b) => a.treatmentNumber - b.treatmentNumber);
   const lastCompletedNumber = sortedTreatments.length > 0 ? sortedTreatments[sortedTreatments.length - 1].treatmentNumber : 0;
@@ -88,7 +85,7 @@ const AppSidebar = () => {
                         className={`flex items-center justify-center w-full text-white text-sm font-medium rounded-md transition-colors px-2 py-2 ${isReadyForProcessing 
                                     ? 'bg-green-600 hover:bg-green-700 cursor-pointer' 
                                     : 'bg-gray-600 opacity-60 cursor-not-allowed'
-                                }`} // <<< SYNTAX CORRECTED HERE
+                                }`}
                         title={isReadyForProcessing ? `Start Calibration for Treatment ${nextTreatmentNumber}`: "Complete initial Activation Setup first"}
                     >
                       <span>{isReadyForProcessing ? `Start Calibration for Treatment ${nextTreatmentNumber}` : `Treatment ${nextTreatmentNumber} (Locked)`}</span>

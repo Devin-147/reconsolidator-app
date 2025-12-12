@@ -3,5 +3,11 @@
     "api/**/*.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/:path((?!api/|images/|favicon.ico).*)",
+      "destination": "/index.html"
+    }
+  ]
 }

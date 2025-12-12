@@ -1,5 +1,5 @@
 // FILE: api/user.ts
-// FINAL CORRECTED VERSION
+// FINAL CORRECTED VERSION: Initiate session is now handled on the client.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import formidable from 'formidable';
@@ -22,24 +22,6 @@ function fileToGenerativePart(filePath: string, mimeType: string): Part {
       mimeType,
     },
   };
-} // <<< THIS BRACE WAS MISSING
-
-async function handleInitiateSession(req: VercelRequest, res: VercelResponse) {
-    const form = formidable({});
-    const [fields] = await form.parse(req);
-    const email = fields.email?.[0]?.trim().toLowerCase();
-    if (!email) { return res.status(400).json({ error: 'Email is required.' }); }
-
-    const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-            shouldCreateUser: true,
-            emailRedirectTo: 'https://app.reprogrammingmind.com/calibrate/1',
-        },
-    });
-
-    if (error) throw error;
-    return res.status(200).json({ message: 'Please check your email for a sign-in link.' });
 }
 
 async function handleAnalyzeSelfie(req: VercelRequest, res: VercelResponse) {
@@ -81,16 +63,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
             if (action === 'analyzeSelfie') {
                 return await handleAnalyzeSelfie(req, res);
-            } else {
-                return await handleInitiateSession(req, res);
             }
         } else {
             const { action, payload } = req.body;
             if (action === 'getUserStatus') {
                 return await handleGetUserStatus({ body: payload } as VercelRequest, res);
             }
-            return res.status(400).json({ error: 'Invalid action for JSON request.' });
         }
+        return res.status(400).json({ error: 'Invalid action.' });
     } catch(error) {
         return res.status(500).json({ error: (error as Error).message });
     }

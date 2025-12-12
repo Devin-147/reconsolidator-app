@@ -1,13 +1,13 @@
 // FILE: src/App.tsx
-// MODIFIED: Applies the new AppLayout to the ActivationPage route.
+// FINAL CORRECTED VERSION
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabaseClient'; // Import supabase client
 import { SidebarProvider } from './components/ui/sidebar';
 import AppSidebar from './components/AppSidebar';
-import AppLayout from './components/AppLayout'; // <<< 1. IMPORT THE NEW LAYOUT
 import LandingPage from './pages/LandingPage';
 import ActivationPage from './pages/ActivationPage';
 import Treatment1 from './pages/Treatment1';
@@ -23,9 +23,35 @@ import FAQ from './pages/FAQ';
 import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) { return <div className="flex justify-center items-center min-h-screen">Loading Access...</div>; }
-  if (!isAuthenticated) { return <Navigate to="/" replace />; } // Redirect to landing if not auth'd
+  const { isAuthenticated, isLoading, checkAuthStatus } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    // This effect handles the auth state after a magic link redirect
+    const handleAuth = async () => {
+      // Supabase puts the token in the URL hash
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error getting session:", error);
+      } else if (!data.session) {
+        // If there's no session and the URL contains a token, it might be a new login
+        // We can re-trigger a check in the AuthContext to be sure
+        if (location.hash.includes('access_token')) {
+          checkAuthStatus?.();
+        }
+      }
+    };
+    handleAuth();
+  }, [location, checkAuthStatus]);
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Verifying access...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
@@ -38,26 +64,20 @@ function App() {
           <main className="flex-1 pl-0 md:pl-64 overflow-y-auto"> 
             <div className="max-w-3xl mx-auto p-4 md:p-8"> 
               <Routes>
-                {/* Landing page remains untouched */}
-                <Route path="/" element={<LandingPage />} /> 
-
-                {/* --- vvv 2. APPLY THE LAYOUT TO THE ACTIVATION PAGE ROUTE vvv --- */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-conditions" element={<TermsConditions />} />
+                <Route path="/faq" element={<FAQ />} />
+                
                 <Route 
                   path="/calibrate/:treatmentNumber" 
                   element={
                     <ProtectedRoute>
-                      <AppLayout>
-                        <ActivationPage />
-                      </AppLayout>
+                      <ActivationPage />
                     </ProtectedRoute>
                   } 
                 />
-                {/* --- ^^^ END OF CHANGE ^^^ --- */}
-
-                {/* Other routes remain the same for now */}
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/terms-conditions" element={<TermsConditions />} />
-                <Route path="/faq" element={<FAQ />} />
+                
                 <Route path="/treatment-1" element={<ProtectedRoute><Treatment1 /></ProtectedRoute>} />
                 <Route path="/treatment-2" element={<ProtectedRoute><Treatment2 /></ProtectedRoute>} />
                 <Route path="/treatment-3" element={<ProtectedRoute><Treatment3 /></ProtectedRoute>} />

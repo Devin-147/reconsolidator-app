@@ -1,7 +1,7 @@
 // FILE: src/components/AppSidebar.tsx
-// MODIFIED: Hides itself on the landing page.
+// FINAL CORRECTED VERSION
 
-import React, in { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { CheckCircle, FileText, Mic } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -21,12 +21,10 @@ const AppSidebar = () => {
     memoriesSaved,
   } = useRecording();
 
-  // --- vvv THIS IS THE NEW HIDING LOGIC vvv ---
   const isLandingPage = location.pathname === '/';
-  if (isLandingPage) {
+  if (isLandingPage || !showsSidebar) {
      return null; 
   }
-  // --- ^^^ END OF HIDING LOGIC ^^^ ---
 
   const sortedTreatments = [...(completedTreatments || [])].sort((a, b) => a.treatmentNumber - b.treatmentNumber);
   const lastCompletedNumber = sortedTreatments.length > 0 ? sortedTreatments[sortedTreatments.length - 1].treatmentNumber : 0;

@@ -1,106 +1,109 @@
 // FILE: src/pages/PaymentPage.tsx
-// Displays upgrade path for standard users, and standard choices for trial users.
+// FINAL CORRECTED VERSION
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from "@/contexts/AuthContext"; 
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button"; 
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; 
-import { Label } from "@/components/ui/label"; 
-import { Loader2, Zap, ArrowRight, Award } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { NeuralSpinner } from '@/components/ui/NeuralSpinner';
+import { CheckCircle } from 'lucide-react';
 
-const TIERS = [
-  { id: 'standard_lifetime', priceId: 'price_1R4vocGlRHehBfcVWr0xTMI1', name: 'Standard Lifetime', price: '$47.00', description: 'Full access to all 5 treatments using your own recorded voice.', features: ['All 5 treatment protocols', 'User-recorded narrations', 'Progress tracking', 'Lifetime access'] },
-  { id: 'premium_lifetime', priceId: 'price_1RXmGLGlRHehBfcVIjMA7Vu4', name: 'Premium AI Lifetime', price: '$77.00', description: 'All features, PLUS AI-generated narrations and animated visuals.', features: ['All Standard features', 'AI Voice Narrator', 'Animated Logo Visuals', 'Enhanced experience'] },
-];
+const stripePromise = loadStripe(process.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-// The specific coupon for upgrading from Standard to Premium
-const UPGRADE_COUPON_ID = 'XcUpEyak';
+// IMPORTANT: Replace with your actual Price IDs from your Stripe dashboard
+const STANDARD_PRICE_ID = "price_1PPZgYJgJ...your...standard...id";
+const PREMIUM_PRICE_ID = "price_1PPZgYJgJ...your...premium...id";
+
+const PlanOption = ({ title, price, description, isSelected, onSelect }: { title: string, price: string, description: string, isSelected: boolean, onSelect: () => void }) => (
+  <div
+    className={`relative p-6 border-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/10 ring-2 ring-primary' : 'border-border hover:border-primary/50'}`}
+    onClick={onSelect}
+  >
+    {isSelected && (
+      <div className="absolute top-4 right-4">
+        <CheckCircle className="w-6 h-6 text-primary" />
+      </div>
+    )}
+    <h2 className="text-2xl font-semibold">{title} - ${price}</h2>
+    <p className="text-muted-foreground mt-1">{description}</p>
+  </div>
+);
 
 const PaymentPage = () => {
+  const [selectedPlan, setSelectedPlan] = useState<'standard' | 'premium'>('premium');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTierId, setSelectedTierId] = useState<string>(TIERS[1].priceId);
-  const navigate = useNavigate();
-  const { userEmail, accessLevel, isLoading: isAuthLoading } = useAuth();
+  const { userEmail } = useAuth();
 
-  const createCheckoutSession = async (priceId: string, couponId?: string) => {
-    setIsLoading(true);
-    if (isAuthLoading || !userEmail) {
-      toast.error("User information not available. Please try again.");
-      setIsLoading(false); return;
+  const handleCheckout = async () => {
+    if (!userEmail) {
+      toast.error("Could not identify user. Please log in again.");
+      return;
     }
+    setIsLoading(true);
+
+    const priceId = selectedPlan === 'premium' ? PREMIUM_PRICE_ID : STANDARD_PRICE_ID;
+
     try {
-      const body = couponId ? { priceId, userEmail, couponId } : { priceId, userEmail };
-      const response = await fetch('/api/create-checkout-session', {
+      const response = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          action: 'createCheckout',
+          payload: { priceId, userEmail }
+        }),
       });
-      const data = await response.json();
-      if (response.ok && data.url) {
-        window.location.href = data.url; // Redirect to Stripe Checkout
-      } else { throw new Error(data.error || 'Failed to create checkout session.'); }
+
+      const { sessionId, error } = await response.json();
+      if (error) throw new Error(error);
+
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe.js has not loaded yet.");
+
+      const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
+      if (stripeError) throw new Error(stripeError.message);
+
     } catch (error: any) {
-      toast.error(error.message); setIsLoading(false);
+      toast.error("Payment failed", { description: error.message });
+      setIsLoading(false);
     }
   };
-  
-  const renderForStandardUser = () => (
-    <div className="text-center p-6 bg-card border-2 border-primary rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-primary">Upgrade to Premium</h2>
-        <p className="mt-2 text-muted-foreground">You already have Standard Lifetime access. Unlock the full experience with AI narration and animated visuals.</p>
-        <div className="my-6 text-left p-4 bg-muted/50 rounded-lg">
-            <p className="font-semibold text-lg">Premium Features:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                <li><Zap className="inline w-4 h-4 mr-2 text-primary" />AI-Generated Voice Narrations</li>
-                <li><Award className="inline w-4 h-4 mr-2 text-primary" />Unique Animated Logo for each Narrative</li>
-            </ul>
-        </div>
-        <p className="text-xl font-semibold">Upgrade Price: <span className="line-through text-muted-foreground/80">$77.00</span> $30.00</p>
-        <Button size="lg" className="w-full mt-6" disabled={isLoading || isAuthLoading} onClick={() => createCheckoutSession(TIERS[1].priceId, UPGRADE_COUPON_ID)}>
-            {isLoading ? <Loader2 className="animate-spin"/> : "Upgrade Now for $30"}
-        </Button>
-    </div>
-  );
-
-  const renderForTrialUser = () => (
-    <form onSubmit={(e) => { e.preventDefault(); createCheckoutSession(selectedTierId); }}>
-        <RadioGroup value={selectedTierId} onValueChange={setSelectedTierId} className="space-y-4">
-            {TIERS.map((tier) => (
-              <Label key={tier.id} htmlFor={tier.priceId} className={`flex p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedTierId === tier.priceId ? 'border-primary ring-2 ring-primary' : 'border-border'}`}>
-                <RadioGroupItem value={tier.priceId} id={tier.priceId} className="mr-4 mt-1" />
-                <div className="flex-grow">
-                  <span className="block text-xl font-semibold">{tier.name} - {tier.price}</span>
-                  <span className="block text-sm text-muted-foreground mt-1">{tier.description}</span>
-                </div>
-              </Label>
-            ))}
-        </RadioGroup>
-        <Button type="submit" size="lg" className="w-full mt-8" disabled={isLoading || isAuthLoading}>
-            {isLoading ? <Loader2 className="animate-spin" /> : `Proceed to Payment`}
-        </Button>
-    </form>
-  );
 
   return (
-    <div className="min-h-screen p-4 py-8">
-      <div className="max-w-lg mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-primary">Unlock Full Access</h1>
-          <p className="mt-2 text-muted-foreground">
-            {accessLevel === 'standard_lifetime' ? 'Thank you for being a member! Complete your journey.' : 'Choose your lifetime access plan.'}
-          </p>
-        </div>
-        
-        {isAuthLoading && <div className="text-center p-4"><Loader2 className="animate-spin" /></div>}
-        
-        {!isAuthLoading && accessLevel === 'standard_lifetime' && renderForStandardUser()}
-        {!isAuthLoading && accessLevel === 'trial' && renderForTrialUser()}
+    <div className="flex flex-col items-center justify-center min-h-screen text-white p-4">
+      <div className="w-full max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-2 text-primary">Unlock Your Full Potential</h1>
+        <p className="text-center text-muted-foreground mb-8">Choose the plan that's right for you. Your first treatment is free.</p>
 
-        <div className="text-center mt-4"> <Button variant="link" size="sm" onClick={() => navigate(-1)}>Maybe Later</Button> </div>
+        <div className="space-y-4 mb-8">
+          <PlanOption
+            title="Standard Lifetime"
+            price="47.00"
+            description="Full access to all 5 treatments using your own recorded voice."
+            isSelected={selectedPlan === 'standard'}
+            onSelect={() => setSelectedPlan('standard')}
+          />
+          <PlanOption
+            title="Premium AI Lifetime"
+            price="77.00"
+            description="All features, PLUS AI-generated narrations and animated visuals."
+            isSelected={selectedPlan === 'premium'}
+            onSelect={() => setSelectedPlan('premium')}
+          />
+        </div>
+
+        <Button 
+          onClick={handleCheckout} 
+          disabled={isLoading} 
+          className="w-full h-14 text-lg font-bold"
+          size="lg"
+        >
+          {isLoading ? <NeuralSpinner /> : `Proceed to Payment for ${selectedPlan === 'premium' ? '$77.00' : '$47.00'}`}
+        </Button>
+        <Button variant="link" className="w-full mt-2 text-muted-foreground">Maybe Later</Button>
       </div>
     </div>
   );
 };
+
 export default PaymentPage;

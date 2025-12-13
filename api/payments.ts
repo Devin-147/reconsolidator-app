@@ -1,16 +1,15 @@
 // FILE: api/payments.ts
-// NEW: A consolidated endpoint for all Stripe payment actions.
+// FINAL CORRECTED VERSION
 
 import Stripe from 'stripe';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { buffer } from 'micro';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// --- Initialize Clients ---
 let stripe: Stripe;
 let supabaseAdmin: SupabaseClient;
 let webhookSecret: string;
-const initError: string | null = null;
+let initError: string | null = null;
 
 try {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -21,14 +20,13 @@ try {
     if (!stripeSecretKey || !supabaseUrl || !supabaseServiceKey || !webhookSecret) {
         throw new Error('One or more required environment variables are missing.');
     }
-    stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-04-10' });
+    stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-05-28.basil' });
     supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 } catch (e: any) {
     console.error("Initialization failed:", e.message);
-    // initError will be checked in the handler
+    initError = e.message;
 }
 
-// --- Handler for Creating a Checkout Session ---
 async function handleCreateCheckout(req: VercelRequest, res: VercelResponse) {
     const { priceId, userEmail } = req.body.payload;
     if (!priceId || !userEmail) {
@@ -48,7 +46,6 @@ async function handleCreateCheckout(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ sessionId: session.id });
 }
 
-// --- Handler for Processing Stripe Webhook Events ---
 async function handleStripeWebhook(req: VercelRequest, res: VercelResponse) {
     const buf = await buffer(req);
     const sig = req.headers['stripe-signature'] as string;
@@ -69,12 +66,10 @@ async function handleStripeWebhook(req: VercelRequest, res: VercelResponse) {
             return res.status(400).send('Webhook Error: Missing user email.');
         }
 
-        // Fetch price to determine access level
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
         const priceId = lineItems.data[0]?.price?.id;
-
-        // You must get these Price IDs from your Stripe Product Catalogue
-        const PREMIUM_PRICE_ID = "price_1PPZgYJgJ...your...premium...id"; // Replace with your actual ID
+        
+        const PREMIUM_PRICE_ID = "price_1PPZgYJgJ...your...premium...id";
         
         const accessLevel = (priceId === PREMIUM_PRICE_ID) ? 'premium_lifetime' : 'standard_lifetime';
         
@@ -91,13 +86,11 @@ async function handleStripeWebhook(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ received: true });
 }
 
-// --- Main API Router ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (initError) {
         return res.status(500).json({ error: `API Initialization Failed: ${initError}` });
     }
 
-    // Webhook requests are raw, other requests are JSON
     if (req.headers['stripe-signature']) {
         return await handleStripeWebhook(req, res);
     }
@@ -115,7 +108,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 }
 
-// Vercel needs to know the webhook doesn't use the standard body parser
 export const config = {
     api: {
         bodyParser: false,

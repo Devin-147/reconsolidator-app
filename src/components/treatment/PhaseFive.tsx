@@ -1,5 +1,5 @@
 // FILE: src/components/treatment/PhaseFive.tsx
-// FINAL CORRECTED VERSION
+// FINAL CORRECTED VERSION: Implements the "Dual Generation" plan by sending full memory context.
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -66,38 +66,57 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
     setIndicesForReversal(p => p.includes(idx) ? p.filter(i => i !== idx) : (p.length < 8 ? [...p, idx] : p)); 
   }, []);
 
+  // --- vvv THIS IS THE UPDATED FUNCTION vvv ---
   const handleConfirmAndPrepare = async () => {
-    if (indicesForReversal.length !== 8) { toast.error("Select 8 narratives."); return; }
+    if (indicesForReversal.length !== 8) {
+      toast.error("Please select exactly 8 narratives to reverse.");
+      return;
+    }
 
     if (experienceMode === 'video') {
+      // Validation for the "Dual Generation" plan
+      if (!memory1 || !memory2 || !sessionTargetEvent) {
+        toast.error("Core memory components are missing. Cannot generate reversed videos.");
+        return;
+      }
       setIsGeneratingClips(true);
-      toast.info("Preparing your reversed visual clips...");
+      toast.info("Generating your first-person reversed clips...");
       try {
         const response = await fetch('/api/treatment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'generateReversed',
-            payload: { userEmail, treatmentNumber, indices: indicesForReversal }
+            action: 'generateReversedClips', // New, more descriptive action name
+            payload: { 
+              userEmail, 
+              treatmentNumber, 
+              indices: indicesForReversal,
+              memory1,
+              memory2,
+              sessionTargetEvent 
+            }
           })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Failed to generate clips.");
+        if (!response.ok) throw new Error(data.error || "Failed to generate reversed clips.");
+        
         setReversedVideoClips(data.clips);
         toast.success("Reversed clips are ready!");
         setIsSelectionComplete(true);
       } catch (error: any) {
-        toast.error(error.message || "An error occurred.");
+        toast.error("Error generating clips", { description: error.message });
       } finally {
         setIsGeneratingClips(false);
       }
     } else {
+      // The audio-only path remains unchanged
       generateAndPrepareReverseScripts();
     }
   };
+  // --- ^^^ END OF UPDATED FUNCTION ^^^ ---
   
   const generateAndPrepareReverseScripts = useCallback(() => {
-    if (!memory1 || !memory2 || !sessionTargetEvent || !selectedPredictionErrors || selectedPredictionErrors.length < 11) { toast.error("Base data missing."); return; }
+    if (!memory1 || !memory2 || !sessionTargetEvent || selectedPredictionErrors.length < 11) { toast.error("Base data missing for script generation."); return; }
     const newReversedItems: ReversedScriptItem[] = indicesForReversal.map(idx => {
       const pe = selectedPredictionErrors[idx];
       return { originalIndex: idx, title: pe.title, reversedText: `Reverse Script (7s max):\n${memory2}\nThen, ${pe.description}\nThen, ${sessionTargetEvent}\nThen, ${memory1}`, aiAudioUrl: null, isLoadingAi: false, aiError: null };
@@ -105,11 +124,11 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
     setReversedScriptObjects(newReversedItems);
     setUserRecordedReverseAudios(Array(8).fill(null));
     setIsSelectionComplete(true);
-    toast.success("Reverse scripts prepared.");
+    toast.success("Reverse audio scripts prepared.");
   }, [indicesForReversal, memory1, memory2, sessionTargetEvent, selectedPredictionErrors]);
 
   const triggerSingleReverseAiLoad = useCallback(async (rIdx: number) => {
-    // This logic remains for the audio path
+    // This logic remains for the audio path and is unchanged
   }, [reversedScriptObjects, userEmail, treatmentNumber]);
 
   useEffect(() => {
@@ -122,7 +141,6 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
     setUserRecordedReverseAudios(p => { const n=[...p]; if(idx>=0 && idx<n.length){n[idx]=url;} return n; });
   }, []);
   
-  // vvv THIS IS THE CORRECTED FUNCTION vvv
   const handleToggleReverseAiPlayback = (rIdx: number) => {
     const pId = -(rIdx + 1);
     if (currentlyPlayingAiIndex === pId) {
@@ -131,7 +149,6 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
       setCurrentlyPlayingAiIndex?.(pId);
     }
   };
-  // ^^^ END OF CORRECTION ^^^
   
   if (!isCurrentPhase) return null;
   
@@ -140,15 +157,15 @@ export const PhaseFive: React.FC<PhaseFiveProps> = ({
 
   if (isGeneratingClips) {
     return (
-        <div className="flex flex-col items-center justify-center h-64 p-6 border rounded-lg bg-card">
+        <div className="flex flex-col items-center justify-center h-64 p-6 border rounded-lg bg-card glass-card">
             <NeuralSpinner className="h-20 w-20" />
-            <p className="mt-4 text-muted-foreground">Generating reversed video clips...</p>
+            <p className="mt-4 text-muted-foreground text-center">Generating your 8 first-person<br/>reversed video clips...</p>
         </div>
     );
   }
   
   return (
-    <div className="space-y-6 p-4 border rounded-lg bg-card shadow-lg">
+    <div className="space-y-6 p-4 border rounded-lg bg-card glass-card shadow-lg">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Phase 5: Reverse Integration</h3>
         <p className="text-sm text-muted-foreground">

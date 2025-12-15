@@ -1,77 +1,68 @@
 // FILE: api/user.ts
-// FINAL CORRECTED VERSION: Initiate session is now handled on the client.
+// FINAL CORRECTED VERSION
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import formidable from 'formidable';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { Resend } from 'resend';
 import fs from 'fs';
+import path from 'path';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL || '', process.env.SUPABASE_SERVICE_KEY || '');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const config = { api: { bodyParser: false } };
 
-function fileToGenerativePart(filePath: string, mimeType: string): Part {
-  return {
-    inlineData: {
-      data: fs.readFileSync(filePath).toString("base64"),
-      mimeType,
-    },
-  };
-}
-
-async function handleAnalyzeSelfie(req: VercelRequest, res: VercelResponse) {
-    const form = formidable({});
-    const [fields, files] = await form.parse(req);
-    const userEmail = fields.userEmail?.[0];
-    const selfieFile = files.selfie?.[0];
-    if (!userEmail || !selfieFile) return res.status(400).json({ error: 'Email and selfie are required.' });
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    const prompt = "Analyze the person...";
-    const imagePart = fileToGenerativePart(selfieFile.filepath, selfieFile.mimetype || 'image/jpeg');
-    const result = await model.generateContent([prompt, imagePart]);
-    const aiDescription = result.response.text().trim();
-
-    await supabase.from('users').update({ ai_description: aiDescription }).eq('email', userEmail);
-    
-    return res.status(200).json({ message: 'Selfie analyzed and description saved!', aiDescription });
-}
-
-async function handleGetUserStatus(req: VercelRequest, res: VercelResponse) {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email is required.' });
-
-    const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
-    if (error) throw error;
-    
-    return res.status(200).json(user);
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (req.method !== 'POST') { return res.status(405).json({ error: 'Method Not Allowed' }); }
+
+    const form = formidable({});
     try {
-        const isMultiPart = req.headers['content-type']?.includes('multipart/form-data');
+        const [fields] = await form.parse(req);
+        const email = fields.email?.[0]?.trim().toLowerCase();
+        if (!email) { return res.status(400).json({ error: 'Email is required.' }); }
+
+        // Always generate a magic link. Supabase handles new vs. existing users.
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email: email,
+            options: { redirectTo: 'https://app.reprogrammingmind.com/calibrate/1' },
+        });
+        if (linkError || !linkData) throw linkError || new Error("Could not generate magic link.");
+        const magicLink = linkData.properties.action_link;
         
-        if (isMultiPart) {
-            const form = formidable({});
-            const [fields] = await form.parse(req);
-            const action = fields.action?.[0];
-            
-            if (action === 'analyzeSelfie') {
-                return await handleAnalyzeSelfie(req, res);
-            }
-        } else {
-            const { action, payload } = req.body;
-            if (action === 'getUserStatus') {
-                return await handleGetUserStatus({ body: payload } as VercelRequest, res);
-            }
+        // Check if the user is new to decide if we send the PDF.
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        const isNewUser = !users.some(u => u.email === email);
+
+        if (isNewUser) {
+            // If new user, also create their profile in the 'users' table
+            const { data: { user: newAuthUser } } = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: true });
+            if (!newAuthUser) throw new Error("Could not create auth user profile.");
+            await supabaseAdmin.from('users').insert({ id: newAuthUser.id, email });
         }
-        return res.status(400).json({ error: 'Invalid action.' });
-    } catch(error) {
-        return res.status(500).json({ error: (error as Error).message });
+
+        // Prepare and send the email from Resend
+        const pdfBuffer = fs.readFileSync(path.join(process.cwd(), 'public', 'instructions.pdf'));
+        await resend.emails.send({
+            from: 'Dev <dev@reprogrammingmind.com>',
+            to: email,
+            subject: 'Welcome! Your Treatment Link and Instructions',
+            html: `
+                <div>
+                    <h3>Wow, you made it!</h3>
+                    <p>First, let's get into the Reconsolidation Program.</p>
+                    <p>You'll be asked to <strong>briefly</strong> record the target event... (and so on, using your full text from the broadcast)</p>
+                    <a href="${magicLink}" style="padding:10px; background-color:blue; color:white;">Begin Treatment 1</a>
+                </div>
+            `,
+            attachments: isNewUser ? [{ filename: 'instructions.pdf', content: pdfBuffer }] : [],
+        });
+
+        res.status(200).json({ message: 'Please check your email for a sign-in link and instructions.' });
+
+    } catch (error) {
+        console.error('Error in user API:', error);
+        res.status(500).json({ error: 'Server error while processing your request.' });
     }
 }

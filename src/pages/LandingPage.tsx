@@ -1,14 +1,13 @@
 // FILE: src/pages/LandingPage.tsx
-// FINAL CORRECTED VERSION: Implements fast, client-side Supabase auth and preserves all styling.
+// FINAL CORRECTED VERSION
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button'; 
 import { Input } from '@/components/ui/input'; 
 import { Checkbox } from "@/components/ui/checkbox"; 
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner'; 
-import { supabase } from '@/lib/supabaseClient';
 import { AlertTriangle, Film, Upload, XCircle } from 'lucide-react';
 import { MdOutlineEmergencyRecording } from "react-icons/md";
 import { RxMix } from "react-icons/rx";
@@ -20,51 +19,31 @@ const LandingPage = () => {
   const [email, setEmail] = useState('');
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { setUserEmail } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!agreedToPrivacy || !agreedToTerms) {
       toast.error('Please agree to the policies to continue.');
       return;
     }
-    
-    const form = event.currentTarget;
-    if (!form.checkValidity()) {
+    if (!event.currentTarget.checkValidity()) {
         toast.error("Please enter a valid email address.");
         return;
     }
-
     setIsLoading(true);
 
+    const formData = new FormData();
+    formData.append('email', email);
+
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: 'https://app.reprogrammingmind.com/calibrate/1',
-        },
+      const response = await fetch('/api/user', { 
+        method: 'POST',
+        body: formData,
       });
-
-      if (error) throw error;
-
-      if(setUserEmail) setUserEmail(email); 
-      toast.success('Success! Please check your email for a secure sign-in link.');
-      
-      // If a selfie was selected, we now handle the upload AFTER auth is initiated.
-      // This is a "fire-and-forget" action for a better UX.
-      if (selfieFile) {
-        const formData = new FormData();
-        formData.append('action', 'analyzeSelfie');
-        formData.append('selfie', selfieFile);
-        formData.append('userEmail', email);
-        fetch('/api/user', { method: 'POST', body: formData }); // No await, let it run in background
-      }
-      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to send email.');
+      toast.success(data.message || 'Please check your email.');
     } catch (error: any) {
       toast.error('An error occurred', { description: error.message });
     } finally {
@@ -72,19 +51,6 @@ const LandingPage = () => {
     }
   };
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) { toast.error('Please select an image file.'); return; }
-      setSelfieFile(file);
-    }
-  };
-
-  const clearFile = () => {
-    setSelfieFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-6">
       <div className="max-w-4xl mx-auto space-y-16 md:space-y-24"> 
@@ -113,7 +79,7 @@ const LandingPage = () => {
 
         <section className="text-center space-y-3">
             <p className="text-md text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Are you struggling with memories that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
+              Are you struggling with a memory that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
             </p>
         </section>
 
@@ -164,42 +130,15 @@ const LandingPage = () => {
           
           <form onSubmit={handleFormSubmit} className="max-w-md mx-auto space-y-4" noValidate>
             <Input type="email" placeholder="Enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className="text-center bg-background"/>
-
-            <div className="w-full p-4 border-2 border-dashed border-border rounded-lg text-center bg-background/50">
-              <label htmlFor="selfie-upload" className="flex flex-col items-center cursor-pointer">
-                <Upload className="w-8 h-8 text-primary mb-2"/>
-                <span className="font-semibold text-primary">Upload a Selfie (Optional)</span>
-                <span className="text-xs text-muted-foreground mt-1">For a personalized video experience (premium feature).</span>
-              </label>
-              <input 
-                id="selfie-upload" 
-                type="file" 
-                className="hidden" 
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                disabled={isLoading}
-              />
-              {selfieFile && (
-                <div className="mt-3 flex items-center justify-center bg-card p-2 rounded-md">
-                  <Film className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
-                  <span className="text-sm text-foreground truncate">{selfieFile.name}</span>
-                  <Button variant="ghost" size="sm" onClick={clearFile} disabled={isLoading} className="ml-2 p-1 h-auto">
-                      <XCircle className="w-4 h-4 text-muted-foreground hover:text-destructive"/>
-                  </Button>
-                </div>
-              )}
-            </div>
-
+            
             <div className="space-y-2 text-sm text-left">
-                <div className="flex items-center space-x-2"><Checkbox id="privacy" checked={agreedToPrivacy} onCheckedChange={(checked) => setAgreedToPrivacy(checked as boolean)} disabled={isLoading} /><label htmlFor="privacy" className="text-muted-foreground leading-none">I agree to the <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link></label></div>
-                <div className="flex items-center space-x-2"><Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)} disabled={isLoading} /><label htmlFor="terms" className="text-muted-foreground leading-none">I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link></label></div>
+                <div className="flex items-center space-x-2"><Checkbox id="privacy" checked={agreedToPrivacy} onCheckedChange={(c) => setAgreedToPrivacy(!!c)} /><label htmlFor="privacy" className="text-muted-foreground leading-none">I agree to the <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link></label></div>
+                <div className="flex items-center space-x-2"><Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(c) => setAgreedToTerms(!!c)} /><label htmlFor="terms" className="text-muted-foreground leading-none">I agree to the <Link to="/terms-conditions" className="text-primary hover:underline">Terms & Conditions</Link></label></div>
              </div>
             <Button type="submit" size="lg" disabled={isLoading || !agreedToPrivacy || !agreedToTerms} className="w-full bg-primary hover:bg-primary/80 text-primary-foreground py-3 text-base font-semibold">
                 {isLoading ? <NeuralSpinner className="h-5 w-5"/> : 'Start Treatment Setup'}
             </Button>
           </form>
-          {/* We use toast for errors now, so this message state can be removed if not used elsewhere */}
         </section>
 
         <footer className="text-center text-sm text-muted-foreground py-6 space-x-4 border-t border-border">

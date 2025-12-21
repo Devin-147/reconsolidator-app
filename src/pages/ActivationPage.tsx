@@ -1,5 +1,5 @@
 // FILE: src/pages/ActivationPage.tsx
-// FINAL CORRECTED AND REFACTORED VERSION
+// FINAL CORRECTED VERSION
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -32,7 +32,7 @@ const itemVariants: Variants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: { duration: 0.5, ease: "easeOut" },
+    transition: { duration: 0.5, ease: "easeOut" as const },
   },
 };
 
@@ -152,8 +152,8 @@ const ActivationPage = () => {
       <AnimatedSection className="space-y-4">
         <h3 className="text-lg font-semibold text-white">1. Re-activate & Record Target Event</h3>
         <div className="flex items-center justify-between">
-          {!isRecordingSessionTarget ? (<Button onClick={startTargetRecording} size="sm"><Mic className="w-4 h-4 mr-2" /> Start Target Recording</Button>) 
-          : (<Button onClick={stopTargetRecording} variant="destructive" size="sm"><Square className="w-4 h-4 mr-2" /> Stop Recording ({formatTime(sessionTargetRecordingTime)})</Button>)}
+          {!isRecordingSessionTarget ? (<Button onClick={startTargetRecording} size="sm"><Mic className="w-4 h-4 mr-2" /> Start</Button>) 
+          : (<Button onClick={stopTargetRecording} variant="destructive" size="sm"><Square className="w-4 h-4 mr-2" /> Stop ({formatTime(sessionTargetRecordingTime)})</Button>)}
         </div>
         {(isRecordingSessionTarget || sessionTargetTranscriptFromCtx) && (
           <div className="mt-4 p-3 bg-muted/50 rounded border"><p className="text-sm">{isRecordingSessionTarget ? sessionTargetLiveTranscript : sessionTargetTranscriptFromCtx}</p></div>
@@ -174,7 +174,10 @@ const ActivationPage = () => {
       </AnimatedSection>
       
       <AnimatedSection className={`space-y-4 border ${isPremium ? 'border-yellow-500/50' : 'border-transparent'}`}>
-        <h3 className="text-lg font-semibold text-white">4. Personalized Visuals (Premium)</h3>
+        <h3 className="text-lg font-semibold text-white flex items-center">
+          4. Personalized Visuals (Premium)
+          {isPremium ? <Sparkles size={18} className="ml-2 text-yellow-400"/> : <Lock size={18} className="ml-2 text-muted-foreground"/>}
+        </h3>
         {isPremium ? (
           <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">Upload a selfie to personalize your cinematic narratives.</p>

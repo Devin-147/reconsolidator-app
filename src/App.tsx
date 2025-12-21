@@ -1,12 +1,12 @@
 // FILE: src/App.tsx
-// MODIFIED: Uses a conditional layout to remove the sidebar and padding from the landing page.
+// FINAL CORRECTED VERSION: Upgraded ProtectedRoute for nuanced access control.
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './components/ui/sidebar';
-import AppSidebar from './components/AppSidebar';
+import AppLayout from './components/AppLayout';
 import LandingPage from './pages/LandingPage';
 import ActivationPage from './pages/ActivationPage';
 import Treatment1 from './pages/Treatment1';
@@ -21,73 +21,69 @@ import TermsConditions from './pages/TermsConditions';
 import FAQ from './pages/FAQ';
 import NotFound from './pages/NotFound';
 
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) { return <div className="flex justify-center items-center min-h-screen">Loading Access...</div>; }
-  if (!isAuthenticated) { return <Navigate to="/" replace />; }
+// --- vvv THIS IS THE UPGRADED PROTECTEDROUTE COMPONENT vvv ---
+const ProtectedRoute = ({ children, requiredAccess = 'trial' }: { children: JSX.Element, requiredAccess?: 'trial' | 'paid' }) => {
+  const { isAuthenticated, isLoading, accessLevel } = useAuth();
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Verifying access...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Check for paid access if required for the route
+  if (requiredAccess === 'paid') {
+    const isPaidUser = accessLevel === 'standard_lifetime' || accessLevel === 'premium_lifetime';
+    if (!isPaidUser) {
+      // If a non-paying user tries to access a paid route, send them to the upgrade page.
+      return <Navigate to="/upgrade" replace />;
+    }
+  }
+
+  // If all checks pass, render the requested child component.
   return children;
 };
+// --- ^^^ END OF UPGRADE ^^^ ---
 
-// --- vvv NEW LAYOUT COMPONENT vvv ---
-// This component checks the URL and applies the correct layout.
-const PageLayout = () => {
-    const location = useLocation();
-    const isLandingPage = location.pathname === '/';
-
-    // The routes are defined once here.
-    const routeContent = (
-        <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-conditions" element={<TermsConditions />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/calibrate/:treatmentNumber" element={<ProtectedRoute><ActivationPage /></ProtectedRoute>} />
-            <Route path="/treatment-1" element={<ProtectedRoute><Treatment1 /></ProtectedRoute>} />
-            <Route path="/treatment-2" element={<ProtectedRoute><Treatment2 /></ProtectedRoute>} />
-            <Route path="/treatment-3" element={<ProtectedRoute><Treatment3 /></ProtectedRoute>} />
-            <Route path="/treatment-4" element={<ProtectedRoute><Treatment4 /></ProtectedRoute>} />
-            <Route path="/treatment-5" element={<ProtectedRoute><Treatment5 /></ProtectedRoute>} />
-            <Route path="/upgrade" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
-            <Route path="/follow-up" element={<ProtectedRoute><FollowUp /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-        </Routes>
-    );
-
-    if (isLandingPage) {
-        // On the landing page, render content full-width without a sidebar.
-        return (
-            <main className="flex-1 w-full overflow-y-auto">
-                {routeContent}
-            </main>
-        );
-    }
-
-    // On all other pages, render the sidebar and the padded content area.
-    return (
-        <>
-            <AppSidebar />
-            <main className="flex-1 pl-0 md:pl-64 overflow-y-auto">
-                <div className="max-w-3xl mx-auto p-4 md:p-8">
-                    {routeContent}
-                </div>
-            </main>
-        </>
-    );
-};
-// --- ^^^ END OF NEW LAYOUT COMPONENT ^^^ ---
 
 function App() {
   return (
     <SidebarProvider> 
       <Router>
-        <div className="relative min-h-screen w-full bg-background text-foreground flex"> 
-          {/* The PageLayout component now handles all routing and layout logic */}
-          <PageLayout />
-        </div>
         <Toaster />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          
+          {/* Public info pages */}
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-conditions" element={<TermsConditions />} />
+          <Route path="/faq" element={<FAQ />} />
+
+          {/* Protected routes that require authentication */}
+          <Route element={<AppLayout />}>
+            <Route path="/calibrate/1" element={<ProtectedRoute requiredAccess='trial'><ActivationPage /></ProtectedRoute>} />
+            <Route path="/treatment-1" element={<ProtectedRoute requiredAccess='trial'><Treatment1 /></ProtectedRoute>} />
+            <Route path="/upgrade" element={<ProtectedRoute requiredAccess='trial'><PaymentPage /></ProtectedRoute>} />
+            
+            {/* These routes now correctly require 'paid' access */}
+            <Route path="/calibrate/2" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
+            <Route path="/calibrate/3" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
+            <Route path="/calibrate/4" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
+            <Route path="/calibrate/5" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
+            
+            <Route path="/treatment-2" element={<ProtectedRoute requiredAccess='paid'><Treatment2 /></ProtectedRoute>} />
+            <Route path="/treatment-3" element={<ProtectedRoute requiredAccess='paid'><Treatment3 /></ProtectedRoute>} />
+            <Route path="/treatment-4" element={<ProtectedRoute requiredAccess='paid'><Treatment4 /></ProtectedRoute>} />
+            <Route path="/treatment-5" element={<ProtectedRoute requiredAccess='paid'><Treatment5 /></ProtectedRoute>} />
+            <Route path="/follow-up" element={<ProtectedRoute requiredAccess='paid'><FollowUp /></ProtectedRoute>} />
+          </Route>
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </Router>
     </SidebarProvider>
   );
 }
-
 export default App;

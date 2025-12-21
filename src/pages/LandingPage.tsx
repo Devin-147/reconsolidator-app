@@ -1,14 +1,14 @@
 // FILE: src/pages/LandingPage.tsx
-// FINAL CORRECTED VERSION
+// FINAL CORRECTED VERSION: Leaner, focused on email opt-in.
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button'; 
 import { Input } from '@/components/ui/input'; 
 import { Checkbox } from "@/components/ui/checkbox"; 
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner'; 
-import { AlertTriangle, Film, Upload, XCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { MdOutlineEmergencyRecording } from "react-icons/md";
 import { RxMix } from "react-icons/rx";
 import { GrCatalog } from "react-icons/gr";
@@ -79,7 +79,7 @@ const LandingPage = () => {
 
         <section className="text-center space-y-3">
             <p className="text-md text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Are you struggling with a memory that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
+              Are you struggling with memories that won't let go—maybe a painful breakup, a lingering rejection, or an eventful moment of guilt, anger, sadness or shame? The Reconsolidation program uses the science-backed Reconsolidation of Traumatic Memories (RTM) protocol to help you reprocess those memories and reduce their emotional impact. In studies, 90% of users saw significant relief from intrusive symptoms, and one user reduced their distress by 76% in a single session. You can too.
             </p>
         </section>
 

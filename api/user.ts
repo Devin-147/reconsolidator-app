@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             await supabaseAdmin.from('users').insert({ id: newAuthUser.id, email });
         }
 
-        // Prepare and send the email from Resend
+        // --- vvv THIS IS THE CORRECTED EMAIL CONTENT vvv ---
         const pdfPath = path.join(process.cwd(), 'api', 'instructions1.pdf');
         const pdfBuffer = fs.readFileSync(pdfPath);
         
@@ -51,15 +51,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             to: email,
             subject: 'Welcome! Your Treatment Link and Instructions',
             html: `
-                <div>
+                <div style="font-family: sans-serif; line-height: 1.6;">
                     <h3>Wow, you made it!</h3>
                     <p>First, let's get into the Reconsolidation Program.</p>
-                    <p>You'll be asked to <strong>briefly</strong> record the target event... (and so on, using your full text from the broadcast)</p>
+                    <p>You'll be asked to <strong>briefly</strong> record the target event. This is to awaken some of the neural networks associated to the problem memory which in the app is called the target event. Recording your 'target event'/problem memory in under a minute is good. Two short sentences can be good.</p>
+                    <p>After that you are asked to tell a positive memory that happened before the event and one positive memory from after the event.</p>
+                    <p>The application is asking you for these:</p>
+                    <ol>
+                        <li>problem memory</li>
+                        <li>pre-target memory</li>
+                        <li>post-target memory</li>
+                    </ol>
+                    <p>Click the link below to securely sign in and begin.</p>
                     <a href="${magicLink}" style="display: inline-block; padding: 12px 24px; background-color: #39e5f6; color: #192835; text-decoration: none; border-radius: 8px; font-weight: bold;">Begin Treatment 1</a>
                 </div>
             `,
             attachments: isNewUser ? [{ filename: 'instructions1.pdf', content: pdfBuffer }] : [],
         });
+        // --- ^^^ END OF CORRECTION ^^^ ---
 
         res.status(200).json({ message: 'Please check your email for a sign-in link and instructions.' });
 

@@ -1,12 +1,12 @@
 // FILE: src/App.tsx
-// FINAL CORRECTED VERSION: Upgraded ProtectedRoute for nuanced access control.
+// FINAL CORRECTED VERSION: Fixes the landing page layout issue.
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './components/ui/sidebar';
-import AppLayout from './components/AppLayout';
+import AppSidebar from './components/AppSidebar';
 import LandingPage from './pages/LandingPage';
 import ActivationPage from './pages/ActivationPage';
 import Treatment1 from './pages/Treatment1';
@@ -21,32 +21,36 @@ import TermsConditions from './pages/TermsConditions';
 import FAQ from './pages/FAQ';
 import NotFound from './pages/NotFound';
 
-// --- vvv THIS IS THE UPGRADED PROTECTEDROUTE COMPONENT vvv ---
-const ProtectedRoute = ({ children, requiredAccess = 'trial' }: { children: JSX.Element, requiredAccess?: 'trial' | 'paid' }) => {
+// This is the layout for all INNER pages of the app. It includes the sidebar.
+const AppLayout = () => (
+  <div className="relative min-h-screen w-full bg-background text-foreground flex">
+    <AppSidebar />
+    <main className="flex-1 pl-0 md:pl-64 overflow-y-auto">
+      <div className="max-w-3xl mx-auto p-4 md:p-8">
+        <Outlet /> {/* Nested routes will render here */}
+      </div>
+    </main>
+  </div>
+);
+
+// This is the gatekeeper for protected pages.
+const ProtectedRoutes = ({ requiredAccess = 'trial' }: { requiredAccess?: 'trial' | 'paid' }) => {
   const { isAuthenticated, isLoading, accessLevel } = useAuth();
 
   if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">Verifying access...</div>;
   }
-
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
-
-  // Check for paid access if required for the route
   if (requiredAccess === 'paid') {
     const isPaidUser = accessLevel === 'standard_lifetime' || accessLevel === 'premium_lifetime';
     if (!isPaidUser) {
-      // If a non-paying user tries to access a paid route, send them to the upgrade page.
       return <Navigate to="/upgrade" replace />;
     }
   }
-
-  // If all checks pass, render the requested child component.
-  return children;
+  return <Outlet />; // If checks pass, render the nested child route
 };
-// --- ^^^ END OF UPGRADE ^^^ ---
-
 
 function App() {
   return (
@@ -54,30 +58,27 @@ function App() {
       <Router>
         <Toaster />
         <Routes>
+          {/* Public routes render without the AppLayout */}
           <Route path="/" element={<LandingPage />} />
-          
-          {/* Public info pages */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-conditions" element={<TermsConditions />} />
           <Route path="/faq" element={<FAQ />} />
 
-          {/* Protected routes that require authentication */}
+          {/* Protected routes are nested inside the AppLayout */}
           <Route element={<AppLayout />}>
-            <Route path="/calibrate/1" element={<ProtectedRoute requiredAccess='trial'><ActivationPage /></ProtectedRoute>} />
-            <Route path="/treatment-1" element={<ProtectedRoute requiredAccess='trial'><Treatment1 /></ProtectedRoute>} />
-            <Route path="/upgrade" element={<ProtectedRoute requiredAccess='trial'><PaymentPage /></ProtectedRoute>} />
-            
-            {/* These routes now correctly require 'paid' access */}
-            <Route path="/calibrate/2" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
-            <Route path="/calibrate/3" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
-            <Route path="/calibrate/4" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
-            <Route path="/calibrate/5" element={<ProtectedRoute requiredAccess='paid'><ActivationPage /></ProtectedRoute>} />
-            
-            <Route path="/treatment-2" element={<ProtectedRoute requiredAccess='paid'><Treatment2 /></ProtectedRoute>} />
-            <Route path="/treatment-3" element={<ProtectedRoute requiredAccess='paid'><Treatment3 /></ProtectedRoute>} />
-            <Route path="/treatment-4" element={<ProtectedRoute requiredAccess='paid'><Treatment4 /></ProtectedRoute>} />
-            <Route path="/treatment-5" element={<ProtectedRoute requiredAccess='paid'><Treatment5 /></ProtectedRoute>} />
-            <Route path="/follow-up" element={<ProtectedRoute requiredAccess='paid'><FollowUp /></ProtectedRoute>} />
+            <Route element={<ProtectedRoutes requiredAccess='trial' />}>
+              <Route path="/calibrate/1" element={<ActivationPage />} />
+              <Route path="/treatment-1" element={<Treatment1 />} />
+              <Route path="/upgrade" element={<PaymentPage />} />
+            </Route>
+            <Route element={<ProtectedRoutes requiredAccess='paid' />}>
+              <Route path="/calibrate/:treatmentNumber" element={<ActivationPage />} />
+              <Route path="/treatment-2" element={<Treatment2 />} />
+              <Route path="/treatment-3" element={<Treatment3 />} />
+              <Route path="/treatment-4" element={<Treatment4 />} />
+              <Route path="/treatment-5" element={<Treatment5 />} />
+              <Route path="/follow-up" element={<FollowUp />} />
+            </Route>
           </Route>
           
           <Route path="*" element={<NotFound />} />

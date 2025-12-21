@@ -22,24 +22,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const email = fields.email?.[0]?.trim().toLowerCase();
         if (!email) { return res.status(400).json({ error: 'Email is required.' }); }
 
+        // Always generate a magic link. Supabase handles new vs. existing users.
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'magiclink',
             email: email,
             options: { redirectTo: 'https://app.reprogrammingmind.com/calibrate/1' },
         });
-        if (linkError || !linkData) throw linkError || new Error("Could not generate magic link.");
+        if (linkError || !linkData || !linkData.properties) throw linkError || new Error("Could not generate magic link.");
         const magicLink = linkData.properties.action_link;
         
+        // Check if the user is new to decide if we send the PDF.
         const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
         const isNewUser = !users.some(u => u.email === email);
 
         if (isNewUser) {
-            const { data: { user: newAuthUser } } = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: true });
-            if (!newAuthUser) throw new Error("Could not create auth user profile.");
+            // If new user, also create their auth entry and profile in the 'users' table
+            const { data: { user: newAuthUser }, error: createError } = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: true });
+            if (createError || !newAuthUser) throw createError || new Error("Could not create auth user profile.");
             await supabaseAdmin.from('users').insert({ id: newAuthUser.id, email });
         }
 
-        const pdfPath = path.join(__dirname, 'instructions1.pdf');
+        // Prepare and send the email from Resend
+        const pdfPath = path.join(process.cwd(), 'api', 'instructions1.pdf');
         const pdfBuffer = fs.readFileSync(pdfPath);
         
         await resend.emails.send({
@@ -50,8 +54,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 <div>
                     <h3>Wow, you made it!</h3>
                     <p>First, let's get into the Reconsolidation Program.</p>
-                    <p>You'll be asked to <strong>briefly</strong> record the target event... (and so on)</p>
-                    <a href="${magicLink}" style="padding:10px; background-color:blue; color:white;">Begin Treatment 1</a>
+                    <p>You'll be asked to <strong>briefly</strong> record the target event... (and so on, using your full text from the broadcast)</p>
+                    <a href="${magicLink}" style="display: inline-block; padding: 12px 24px; background-color: #39e5f6; color: #192835; text-decoration: none; border-radius: 8px; font-weight: bold;">Begin Treatment 1</a>
                 </div>
             `,
             attachments: isNewUser ? [{ filename: 'instructions1.pdf', content: pdfBuffer }] : [],

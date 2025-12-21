@@ -40,7 +40,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             html: `
                 <div style="font-family: sans-serif; line-height: 1.6;">
                     <h3>Welcome to the Reconsolidation Program</h3>
-                    <p>Please read the brief instructions in the PDF attached. When you are ready, click the link below to begin your treatment.</p>
+                    <p> The program begins by asking you to briefly record the target event. This is to awaken some of the neural networks associated to the problem memory, which in the app is called the 'target event'. Recording your 'target event'/problem memory in under a minute is good. Two short sentences can be good.
+
+After that you are asked to tell a positive memory that happened before the event and one positive memory from after the event.
+
+The application is asking you for these:
+
+target/problem memory
+pre-target memory
+post-target memory
+                    For an overview, please read the briefing in the PDF attached. When you are ready, click the link below to begin your treatment.</p>
                     <a href="${magicLink}" style="display: inline-block; padding: 12px 24px; background-color: #39e5f6; color: #192835; text-decoration: none; border-radius: 8px; font-weight: bold;">Begin Treatment 1</a>
                 </div>
             `,

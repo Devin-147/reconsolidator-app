@@ -12,9 +12,11 @@ import { useNavigate } from 'react-router-dom';
 
 const stripePromise = loadStripe(process.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-// IMPORTANT: You will need to get these Price IDs from your Stripe dashboard
-const STANDARD_PRICE_ID = "price_...your...standard...id"; 
-const PREMIUM_PRICE_ID = "price_...your...premium...id";
+// --- vvv THIS IS THE FIX vvv ---
+// Price IDs are now read securely from environment variables
+const STANDARD_PRICE_ID = process.env.VITE_STRIPE_STANDARD_PRICE_ID || '';
+const PREMIUM_PRICE_ID = process.env.VITE_STRIPE_PREMIUM_PRICE_ID || '';
+// --- ^^^ END OF FIX ^^^ ---
 
 const PlanOption = ({ title, price, description, isSelected, onSelect }: { title: string, price: string, description: string, isSelected: boolean, onSelect: () => void }) => (
   <div
@@ -42,6 +44,12 @@ const PaymentPage = () => {
       toast.error("Could not identify user. Please log in again.");
       return;
     }
+    // Add a check to ensure Price IDs are loaded
+    if (!PREMIUM_PRICE_ID || !STANDARD_PRICE_ID) {
+      toast.error("Pricing is not configured correctly. Please contact support.");
+      return;
+    }
+
     setIsLoading(true);
 
     const priceId = selectedPlan === 'premium' ? PREMIUM_PRICE_ID : STANDARD_PRICE_ID;
@@ -74,7 +82,7 @@ const PaymentPage = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-white p-4">
       <div className="w-full max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-2 text-primary">Unlock the Full Potential</h1>
+        <h1 className="text-4xl font-bold text-center mb-2 text-primary">Unlock Your Full Potential</h1>
         <p className="text-center text-muted-foreground mb-8">Choose the plan that's right for you. Your first treatment is free.</p>
 
         <div className="space-y-4 mb-8">

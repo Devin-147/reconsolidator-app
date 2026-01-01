@@ -10,13 +10,11 @@ import { NeuralSpinner } from '@/components/ui/NeuralSpinner';
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const stripePromise = loadStripe(process.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
-
-// --- vvv THIS IS THE FIX vvv ---
-// Price IDs are now read securely from environment variables
-const STANDARD_PRICE_ID = process.env.VITE_STRIPE_STANDARD_PRICE_ID || '';
-const PREMIUM_PRICE_ID = process.env.VITE_STRIPE_PREMIUM_PRICE_ID || '';
-// --- ^^^ END OF FIX ^^^ ---
+// vvv THIS IS THE FIX vvv
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const STANDARD_PRICE_ID = import.meta.env.VITE_STRIPE_STANDARD_PRICE_ID || '';
+const PREMIUM_PRICE_ID = import.meta.env.VITE_STRIPE_PREMIUM_PRICE_ID || '';
+// ^^^ END OF FIX ^^^
 
 const PlanOption = ({ title, price, description, isSelected, onSelect }: { title: string, price: string, description: string, isSelected: boolean, onSelect: () => void }) => (
   <div
@@ -44,14 +42,12 @@ const PaymentPage = () => {
       toast.error("Could not identify user. Please log in again.");
       return;
     }
-    // Add a check to ensure Price IDs are loaded
     if (!PREMIUM_PRICE_ID || !STANDARD_PRICE_ID) {
       toast.error("Pricing is not configured correctly. Please contact support.");
       return;
     }
 
     setIsLoading(true);
-
     const priceId = selectedPlan === 'premium' ? PREMIUM_PRICE_ID : STANDARD_PRICE_ID;
 
     try {

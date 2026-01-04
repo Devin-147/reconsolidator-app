@@ -1,6 +1,6 @@
 # The Reconsolidator App
 
-The Reconsolidator App is a web-based therapeutic tool designed to help users reprocess and reduce the emotional impact of troubling memories. It leverages the clinically-backed Reconsolidation of Traumatic Memories (RTM) protocol in a self-guided, multi-day treatment program.
+The Reconsolidator App is a web-based well-being tool designed to help users reprocess and reduce the emotional impact of targeted memories. It leverages the clinically-backed Reconsolidation of Traumatic Memories (RTM) protocol in a self-guided, multi-day treatment program.
 
 The core of the application guides users through a structured, narrative-driven process to update and reconsolidate the "emotional wiring" of a target memory. This is supplemented by a premium, AI-powered visual experience that generates personalized, cinematic videos to enhance the therapeutic effect.
 

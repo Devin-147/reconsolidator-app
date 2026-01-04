@@ -2,7 +2,7 @@
 // FINAL CORRECTED VERSION
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, Variants } from 'framer-motion';
 import { Info, ArrowRight, Mic, Square, AlertCircle, PartyPopper, Upload, XCircle, Sparkles, Lock } from "lucide-react";
@@ -40,6 +40,7 @@ const ActivationPage = () => {
   const navigate = useNavigate();
   const { treatmentNumber: treatmentNumberString } = useParams<{ treatmentNumber: string }>();
   const currentTreatmentNumber = parseInt(treatmentNumberString || "1", 10);
+  const [searchParams] = useSearchParams();
 
   const {
     memory1: initialMemory1, memory2: initialMemory2,
@@ -48,7 +49,7 @@ const ActivationPage = () => {
     setShowsSidebar, calibrationSuds, setCalibrationSuds,
   } = useRecording();
 
-  const { userEmail, accessLevel } = useAuth();
+  const { userEmail, accessLevel, checkAuthStatus } = useAuth();
   const isPremium = accessLevel === 'premium_lifetime';
 
   const {
@@ -67,6 +68,13 @@ const ActivationPage = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => { setShowsSidebar?.(true); }, [setShowsSidebar]);
+  
+  useEffect(() => {
+    if (searchParams.get('payment_success') === 'true' && userEmail) {
+      toast.success("Payment successful!", { description: "Your premium features are now unlocked." });
+      checkAuthStatus(userEmail);
+    }
+  }, [searchParams, userEmail, checkAuthStatus]);
 
   const handleSessionSudsChange = useCallback((value: number) => {
     setSessionSuds(value); 
